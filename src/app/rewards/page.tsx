@@ -1,4 +1,5 @@
 import { RewardsStore } from "@/components/ui/RewardsStore";
+import { AddRewardForm } from "@/components/ui/AddRewardForm";
 import { getRewards } from "../actions";
 
 export default async function RewardsPage() {
@@ -18,6 +19,8 @@ export default async function RewardsPage() {
           You've worked hard! Now it's time to treat yourself. Spend your earned points on awesome prizes.
         </p>
       </header>
+      
+      <AddRewardForm />
       
       <RewardsStore initialRewards={rewards as any[]} initialPoints={mockPoints} />
     </div>
