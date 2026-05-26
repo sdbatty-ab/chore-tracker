@@ -32,7 +32,7 @@ export default function RootLayout({
       <body className="min-h-full bg-gray-50 text-gray-900">
         <BackgroundManager>
           <Sidebar />
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto pb-20 md:pb-0">
             {children}
           </main>
         </BackgroundManager>

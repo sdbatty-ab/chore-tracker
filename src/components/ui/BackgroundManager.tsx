@@ -44,7 +44,7 @@ export function BackgroundManager({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       {/* Main Content Layer */}
-      <div className="relative z-10 flex w-full h-screen">
+      <div className="relative z-10 flex flex-col md:flex-row w-full h-screen">
         {children}
       </div>
     </div>

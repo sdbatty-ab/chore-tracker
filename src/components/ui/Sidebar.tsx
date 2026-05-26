@@ -19,8 +19,10 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-white/40 bg-white/60 backdrop-blur-xl shadow-lg relative z-20">
-      <div className="flex h-16 items-center px-6 border-b border-white/40">
+    <>
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex h-screen w-64 flex-col border-r border-white/40 bg-white/60 backdrop-blur-xl shadow-lg relative z-20">
+        <div className="flex h-16 items-center px-6 border-b border-white/40">
         <div className="flex items-center gap-2 font-bold text-xl text-indigo-600">
           <Gift className="h-6 w-6" />
           <span>Family First</span>
@@ -57,7 +59,29 @@ export function Sidebar() {
             <p className="text-xs text-gray-500">Admin</p>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-xl border-t border-white/40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 flex items-center justify-around px-2">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={clsx(
+                "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
+                isActive ? "text-indigo-600" : "text-gray-500 hover:text-indigo-400"
+              )}
+            >
+              <Icon className={clsx("h-5 w-5", isActive && "fill-indigo-100")} />
+              <span className="text-[10px] font-bold">{item.name}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </>
   );
 }
