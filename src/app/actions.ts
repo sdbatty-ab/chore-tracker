@@ -270,9 +270,19 @@ export async function addReward(title: string, description: string, points_cost:
 }
 
 export async function addRule(title: string) {
-  const { error } = await supabase.from("rules").insert({
-    title
-  });
+  const family = await getFamily();
+  if (family) {
+    const { error } = await supabase.from("rules").insert({
+      family_id: family.id,
+      title
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/rules");
+  }
+}
+
+export async function removeRule(id: string) {
+  const { error } = await supabase.from("rules").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/rules");
 }
@@ -284,6 +294,12 @@ export async function addGoal(title: string, target_points: number, profileId: s
     current_points: 0,
     profile_id: profileId
   });
+  if (error) throw new Error(error.message);
+  revalidatePath("/rules");
+}
+
+export async function removeGoal(id: string) {
+  const { error } = await supabase.from("goals").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/rules");
 }

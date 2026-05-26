@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldAlert, Target, Heart, Plus, Loader2, Sparkles, Trophy, Users, User } from "lucide-react";
+import { ShieldAlert, Target, Heart, Plus, Loader2, Sparkles, Trophy, Users, User, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { addRule, addGoal } from "@/app/actions";
+import { addRule, addGoal, removeRule, removeGoal } from "@/app/actions";
 
 export interface Rule {
   id: string;
@@ -162,7 +162,23 @@ export function GoalsAndRules({ initialRules, initialGoals, profiles }: GoalsAnd
                 <div className="bg-rose-100 p-2 rounded-full mt-0.5 group-hover:scale-110 transition-transform duration-300">
                   <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />
                 </div>
-                <span className="text-gray-800 font-semibold leading-relaxed">{rule.title}</span>
+                <div className="flex-1">
+                  <span className="text-gray-800 font-semibold leading-relaxed block">{rule.title}</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (confirm("Remove this rule?")) {
+                      try {
+                        await removeRule(rule.id);
+                      } catch (e) {
+                        alert("Failed to remove rule");
+                      }
+                    }
+                  }}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </motion.li>
             ))}
           </ul>
@@ -301,8 +317,24 @@ export function GoalsAndRules({ initialRules, initialGoals, profiles }: GoalsAnd
                         {isAchieved && <Trophy className="h-5 w-5 text-yellow-500 fill-yellow-500" />}
                       </h3>
                     </div>
-                    <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1.5 rounded-xl text-sm whitespace-nowrap ml-4">
-                      {pointsToUse} <span className="text-gray-400 font-medium">/ {goal.target_points}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-gray-100 text-gray-700 font-bold px-3 py-1.5 rounded-xl text-sm whitespace-nowrap ml-4">
+                        {pointsToUse} <span className="text-gray-400 font-medium">/ {goal.target_points}</span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Remove the goal: ${goal.title}?`)) {
+                            try {
+                              await removeGoal(goal.id);
+                            } catch (e) {
+                              alert("Failed to remove goal");
+                            }
+                          }
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
                     </div>
                   </div>
                   
