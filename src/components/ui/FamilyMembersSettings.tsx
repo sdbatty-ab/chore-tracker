@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus, Settings, Shield, User, Loader2, Save } from "lucide-react";
-import { updateFamilySettings, addProfile } from "@/app/actions";
+import { UserPlus, Settings, Shield, User, Loader2, Save, Trash2 } from "lucide-react";
+import { updateFamilySettings, addProfile, removeProfile } from "@/app/actions";
 import { motion } from "framer-motion";
 
 export interface Family {
@@ -171,12 +171,30 @@ export function FamilyMembersSettings({ initialFamily, initialProfiles }: Settin
                     </span>
                   </div>
                 </div>
-                {profile.role === 'kid' && (
-                  <div className="text-right">
-                    <p className="text-2xl font-black text-yellow-500">{profile.points_balance}</p>
-                    <p className="text-xs font-bold text-gray-400">PTS</p>
-                  </div>
-                )}
+                <div className="flex items-center gap-4 text-right">
+                  {profile.role === 'kid' && (
+                    <div>
+                      <p className="text-2xl font-black text-yellow-500">{profile.points_balance}</p>
+                      <p className="text-xs font-bold text-gray-400">PTS</p>
+                    </div>
+                  )}
+                  <button 
+                    onClick={async () => {
+                      if (confirm(`Are you sure you want to remove ${profile.name}?`)) {
+                        try {
+                          await removeProfile(profile.id);
+                        } catch (e) {
+                          console.error(e);
+                          alert("Failed to remove profile");
+                        }
+                      }
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                    title={`Remove ${profile.name}`}
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
               </motion.div>
             ))}
             

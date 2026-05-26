@@ -234,6 +234,13 @@ export async function addProfile(name: string, role: string) {
   revalidatePath("/settings");
 }
 
+export async function removeProfile(id: string) {
+  const { error } = await supabase.from("profiles").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/settings");
+  revalidatePath("/");
+}
+
 export async function addChore(title: string, description: string, points: number, assigned_to: string, is_daily: boolean = false) {
   const family = await getFamily();
   if (family) {
