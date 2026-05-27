@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Gift, Star, ShoppingCart, Check, Loader2, Sparkles } from "lucide-react";
+import { Gift, Star, ShoppingCart, Check, Loader2, Sparkles, X, Edit, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Confetti from "react-confetti";
-import { claimRewardAction } from "@/app/actions";
+import { claimRewardAction, editReward, deleteReward, uploadRewardImage } from "@/app/actions";
+import { PinLock } from "./PinLock";
 
 export interface Reward {
   id: string;
@@ -26,6 +27,12 @@ export function RewardsStore({ initialRewards, kids = [] }: RewardsStoreProps) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [claimedReward, setClaimedReward] = useState<Reward | null>(null);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  const [viewingReward, setViewingReward] = useState<Reward | null>(null);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", description: "", points_cost: 100, image_url: "" as string | null });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setWindowSize({ width: window.innerWidth, height: window.innerHeight });
@@ -60,6 +67,60 @@ export function RewardsStore({ initialRewards, kids = [] }: RewardsStoreProps) {
         alert("Oops! Something went wrong while claiming your reward.");
       } finally {
         setClaimingId(null);
+        setViewingReward(null);
+      }
+    }
+  };
+
+  const handleEditChange = (field: string, value: any) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => handleEditChange("image_url", reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editingReward || !editForm.title.trim()) return;
+    setIsSaving(true);
+    try {
+      let finalImageUrl = editForm.image_url;
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        finalImageUrl = await uploadRewardImage(formData);
+      }
+      
+      await editReward(editingReward.id, editForm.title, editForm.description, editForm.points_cost, finalImageUrl);
+      setEditingReward(null);
+      setViewingReward(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update reward.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingReward) return;
+    if (confirm("Are you sure you want to delete this reward?")) {
+      setIsSaving(true);
+      try {
+        await deleteReward(editingReward.id);
+        setEditingReward(null);
+        setViewingReward(null);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete reward.");
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -145,6 +206,117 @@ export function RewardsStore({ initialRewards, kids = [] }: RewardsStoreProps) {
         )}
       </AnimatePresence>
 
+      {/* Viewing / Editing Modal */}
+      <AnimatePresence>
+        {viewingReward && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {editingReward ? (
+                <div className="p-6 overflow-y-auto">
+                  <PinLock>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold text-gray-900">Edit Reward</h3>
+                      <button onClick={() => setEditingReward(null)} className="p-2 hover:bg-gray-100 rounded-full"><X className="h-5 w-5" /></button>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Reward Title</label>
+                        <input type="text" value={editForm.title} onChange={(e) => handleEditChange("title", e.target.value)} className="w-full bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                        <textarea value={editForm.description} onChange={(e) => handleEditChange("description", e.target.value)} className="w-full h-32 bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Points Cost</label>
+                        <input type="number" value={editForm.points_cost} onChange={(e) => handleEditChange("points_cost", parseInt(e.target.value) || 0)} className="w-full bg-gray-50 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Image</label>
+                        <div className="flex items-center gap-4">
+                          {editForm.image_url && <img src={editForm.image_url} alt="Preview" className="h-16 w-16 object-cover rounded-xl" />}
+                          <button onClick={() => fileInputRef.current?.click()} className="bg-gray-100 px-4 py-2 rounded-lg font-bold text-sm">Change Image</button>
+                          <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+                        </div>
+                      </div>
+                      <div className="flex justify-between pt-4">
+                        <button onClick={handleDelete} disabled={isSaving} className="text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl font-bold flex items-center gap-2">
+                          <Trash2 className="h-4 w-4" /> Delete
+                        </button>
+                        <button onClick={saveEdit} disabled={isSaving || !editForm.title.trim()} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2">
+                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+                        </button>
+                      </div>
+                    </div>
+                  </PinLock>
+                </div>
+              ) : (
+                <>
+                  {viewingReward.image_url && (
+                    <div className="w-full h-48 bg-gray-100 relative">
+                      <img src={viewingReward.image_url} alt={viewingReward.title} className="w-full h-full object-cover" />
+                      <button onClick={() => setViewingReward(null)} className="absolute top-4 right-4 bg-white/50 hover:bg-white p-2 rounded-full backdrop-blur-md transition-colors shadow-sm">
+                        <X className="h-5 w-5 text-gray-900" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="p-6 md:p-8 flex-1 overflow-y-auto">
+                    {!viewingReward.image_url && (
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-3xl shadow-inner">🎁</div>
+                        <button onClick={() => setViewingReward(null)} className="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors"><X className="h-5 w-5 text-gray-900" /></button>
+                      </div>
+                    )}
+                    <h3 className="font-extrabold text-3xl text-gray-900 mb-2">{viewingReward.title}</h3>
+                    <div className="inline-flex items-center gap-1.5 font-bold px-4 py-2 rounded-full bg-yellow-100 text-yellow-700 mb-6">
+                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" /> {viewingReward.points_cost} pts
+                    </div>
+                    
+                    <div className="prose prose-indigo max-w-none text-gray-600 mb-8 whitespace-pre-wrap">
+                      {viewingReward.description || "No description provided."}
+                    </div>
+                    
+                    <div className="flex gap-3 mt-auto pt-4 border-t border-gray-100">
+                      <button 
+                        onClick={() => {
+                          setEditingReward(viewingReward);
+                          setEditForm({
+                            title: viewingReward.title,
+                            description: viewingReward.description,
+                            points_cost: viewingReward.points_cost,
+                            image_url: viewingReward.image_url || null
+                          });
+                        }}
+                        className="p-4 bg-gray-50 text-gray-600 rounded-2xl hover:bg-gray-100 transition-colors"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button 
+                        onClick={() => claimReward(viewingReward)}
+                        disabled={userPoints < viewingReward.points_cost || claimingId === viewingReward.id}
+                        className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${
+                          userPoints >= viewingReward.points_cost 
+                            ? "bg-gray-900 text-white hover:bg-indigo-600 hover:shadow-lg active:scale-95" 
+                            : "bg-gray-100 text-gray-400"
+                        }`}
+                      >
+                        {claimingId === viewingReward.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
+                        {userPoints >= viewingReward.points_cost ? "Claim Reward" : "Not enough points"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Rewards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {initialRewards.map((reward) => {
@@ -184,31 +356,28 @@ export function RewardsStore({ initialRewards, kids = [] }: RewardsStoreProps) {
                 {reward.points_cost} pts
               </div>
               
-              <button 
-                onClick={() => claimReward(reward)}
-                disabled={!canAfford || isClaiming}
-                className={`w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-200 ${
-                  isClaiming
-                    ? "bg-indigo-100 text-indigo-400 cursor-wait"
-                    : canAfford 
-                      ? "bg-gray-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 active:scale-95" 
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {isClaiming ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Claiming...
-                  </>
-                ) : canAfford ? (
-                  <>
-                    <ShoppingCart className="h-5 w-5" />
-                    Claim Reward
-                  </>
-                ) : (
-                  "Not enough points"
-                )}
-              </button>
+              <div className="w-full flex gap-2">
+                <button 
+                  onClick={() => setViewingReward(reward)}
+                  className="flex-1 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-2xl font-bold transition-colors"
+                >
+                  View Details
+                </button>
+                <button 
+                  onClick={() => claimReward(reward)}
+                  disabled={!canAfford || isClaiming}
+                  title="Quick Claim"
+                  className={`w-14 py-3.5 rounded-2xl font-bold flex items-center justify-center transition-all duration-200 ${
+                    isClaiming
+                      ? "bg-indigo-100 text-indigo-400 cursor-wait"
+                      : canAfford 
+                        ? "bg-gray-900 text-white hover:bg-indigo-600 hover:shadow-md active:scale-95" 
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  {isClaiming ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
+                </button>
+              </div>
             </motion.div>
           );
         })}

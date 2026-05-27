@@ -312,7 +312,28 @@ export async function addReward(title: string, description: string, points_cost:
     });
     if (error) throw new Error(error.message);
     revalidatePath("/rewards");
+    revalidatePath("/");
   }
+}
+
+export async function editReward(id: string, title: string, description: string, points_cost: number, image_url: string | null = null) {
+  const { error } = await supabase.from("rewards").update({
+    title,
+    description,
+    points_cost,
+    image_url
+  }).eq("id", id);
+  
+  if (error) throw new Error(error.message);
+  revalidatePath("/rewards");
+  revalidatePath("/");
+}
+
+export async function deleteReward(id: string) {
+  const { error } = await supabase.from("rewards").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/rewards");
+  revalidatePath("/");
 }
 
 export async function uploadRewardImage(formData: FormData) {
