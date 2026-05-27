@@ -153,9 +153,12 @@ export async function approveChore(id: string) {
 }
 
 async function grantPoints(profileId: string, points: number) {
-  const { data: profile } = await supabase.from("profiles").select("points_balance").eq("id", profileId).single();
+  const { data: profile } = await supabase.from("profiles").select("points_balance, lifetime_points").eq("id", profileId).single();
   if (profile) {
-    await supabase.from("profiles").update({ points_balance: profile.points_balance + points }).eq("id", profileId);
+    await supabase.from("profiles").update({ 
+      points_balance: profile.points_balance + points,
+      lifetime_points: (profile.lifetime_points || 0) + points
+    }).eq("id", profileId);
   }
 }
 
@@ -364,18 +367,39 @@ export async function removeGoal(id: string) {
   revalidatePath("/rules");
 }
 
-export async function claimRewardAction(rewardId: string) {
+export async function claimRewardAction(rewardId: string, profileId: string) {
+  // Get the reward cost
+  const { data: reward } = await supabase.from("rewards").select("points_cost").eq("id", rewardId).single();
+  if (!reward) throw new Error("Reward not found");
+
+  // Get the user's current points
+  const { data: profile } = await supabase.from("profiles").select("points_balance").eq("id", profileId).single();
+  if (!profile || profile.points_balance < reward.points_cost) throw new Error("Not enough points");
+
+  // Deduct the points
+  const { error: deductError } = await supabase.from("profiles").update({
+    points_balance: profile.points_balance - reward.points_cost
+  }).eq("id", profileId);
+
+  if (deductError) throw new Error("Failed to deduct points");
+
+  // Create the claim
   const { error } = await supabase.from("reward_claims").insert({
     reward_id: rewardId,
+    kid_id: profileId,
     status: "pending"
   });
   
   if (error) {
     console.error("Error claiming reward:", error);
+    // Refund points if claim failed
+    await supabase.from("profiles").update({ points_balance: profile.points_balance }).eq("id", profileId);
     throw new Error("Failed to claim reward");
   }
   
   revalidatePath("/rewards");
+  revalidatePath("/");
+  revalidatePath("/member/[id]", "page");
 }
 
 export async function getCalendarLinks() {

@@ -16,11 +16,12 @@ export interface Reward {
 
 interface RewardsStoreProps {
   initialRewards: Reward[];
-  initialPoints: number;
+  kids?: any[];
 }
 
-export function RewardsStore({ initialRewards, initialPoints }: RewardsStoreProps) {
-  const [userPoints, setUserPoints] = useState(initialPoints);
+export function RewardsStore({ initialRewards, kids = [] }: RewardsStoreProps) {
+  const [selectedKidId, setSelectedKidId] = useState<string>(kids[0]?.id || "");
+  const [userPoints, setUserPoints] = useState(kids[0]?.points_balance || 0);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [claimedReward, setClaimedReward] = useState<Reward | null>(null);
@@ -33,11 +34,22 @@ export function RewardsStore({ initialRewards, initialPoints }: RewardsStoreProp
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    const selectedKid = kids.find(k => k.id === selectedKidId);
+    if (selectedKid) {
+      setUserPoints(selectedKid.points_balance || 0);
+    }
+  }, [selectedKidId, kids]);
+
   const claimReward = async (reward: Reward) => {
+    if (!selectedKidId) {
+      alert("Please select who is shopping first!");
+      return;
+    }
     if (userPoints >= reward.points_cost) {
       setClaimingId(reward.id);
       try {
-        await claimRewardAction(reward.id);
+        await claimRewardAction(reward.id, selectedKidId);
         setUserPoints(prev => prev - reward.points_cost);
         setClaimedReward(reward);
         setShowConfetti(true);
@@ -69,6 +81,25 @@ export function RewardsStore({ initialRewards, initialPoints }: RewardsStoreProp
       {showConfetti && (
         <div className="fixed inset-0 z-50 pointer-events-none">
           <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={500} />
+        </div>
+      )}
+
+      {/* Kid Selector */}
+      {kids.length > 0 && (
+        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between">
+          <div>
+            <h3 className="font-bold text-gray-900">Who is shopping?</h3>
+            <p className="text-sm text-gray-500">Select your name to see your points balance</p>
+          </div>
+          <select 
+            value={selectedKidId}
+            onChange={(e) => setSelectedKidId(e.target.value)}
+            className="w-full sm:w-auto bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 text-gray-900 font-bold"
+          >
+            {kids.map(kid => (
+              <option key={kid.id} value={kid.id}>{kid.name}</option>
+            ))}
+          </select>
         </div>
       )}
 

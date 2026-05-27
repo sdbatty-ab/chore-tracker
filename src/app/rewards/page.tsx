@@ -1,12 +1,13 @@
 import { RewardsStore } from "@/components/ui/RewardsStore";
 import { AddRewardForm } from "@/components/ui/AddRewardForm";
-import { getRewards } from "../actions";
+import { getRewards, getProfiles } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function RewardsPage() {
   const rewards = await getRewards();
-  const mockPoints = 450; // Temporarily mocked until we build the real points query
+  const profiles = await getProfiles();
+  const kids = profiles.filter((p: any) => p.role === "kid");
   
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full">
@@ -24,7 +25,7 @@ export default async function RewardsPage() {
       
       <AddRewardForm />
       
-      <RewardsStore initialRewards={rewards as any[]} initialPoints={mockPoints} />
+      <RewardsStore initialRewards={rewards as any[]} kids={kids} />
     </div>
   );
 }
