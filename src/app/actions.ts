@@ -29,24 +29,33 @@ export async function getChores() {
   const family = await getFamily();
   if (!family) return [];
 
-  // --- Auto-Reset Daily Chores Logic ---
-  // We use the local time date string (YYYY-MM-DD)
+  // --- Auto-Reset Daily & Weekly Chores Logic ---
   const today = new Date();
-  // Adjust to local timezone rough offset for "today"
-  const todayDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  const localToday = new Date(today.getTime() - (today.getTimezoneOffset() * 60000));
+  const todayDate = localToday.toISOString().split('T')[0];
   
-  if (family.last_daily_reset !== todayDate) {
-    // It's a new day! Reset all daily chores
-    await supabase
-      .from("chores")
-      .update({ status: "pending" })
-      .eq("family_id", family.id)
-      .eq("is_daily", true);
-      
-    await supabase
-      .from("families")
-      .update({ last_daily_reset: todayDate })
-      .eq("id", family.id);
+  // Calculate the most recent Sunday
+  const dayOfWeek = localToday.getDay(); // 0 is Sunday
+  const lastSunday = new Date(localToday);
+  lastSunday.setDate(localToday.getDate() - dayOfWeek);
+  const weekStartDate = lastSunday.toISOString().split('T')[0];
+  
+  const needsDailyReset = family.last_daily_reset !== todayDate;
+  const needsWeeklyReset = family.last_weekly_reset !== weekStartDate;
+  
+  if (needsDailyReset || needsWeeklyReset) {
+    if (needsDailyReset) {
+      // Also catch any legacy is_daily chores
+      await supabase.from("chores").update({ status: "pending" }).eq("family_id", family.id).or("recurrence.eq.daily,is_daily.eq.true");
+    }
+    if (needsWeeklyReset) {
+      await supabase.from("chores").update({ status: "pending" }).eq("family_id", family.id).eq("recurrence", "weekly");
+    }
+    
+    await supabase.from("families").update({
+      last_daily_reset: todayDate,
+      last_weekly_reset: weekStartDate
+    }).eq("id", family.id);
   }
   // -------------------------------------
 
@@ -257,7 +266,7 @@ export async function removeProfile(id: string) {
   revalidatePath("/");
 }
 
-export async function addChore(title: string, description: string, points: number, assigned_to: string, is_daily: boolean = false) {
+export async function addChore(title: string, description: string, points: number, assigned_to: string, recurrence: string = 'none') {
   const family = await getFamily();
   if (family) {
     const { error } = await supabase.from("chores").insert({
@@ -267,7 +276,7 @@ export async function addChore(title: string, description: string, points: numbe
       points,
       assigned_to,
       status: "pending",
-      is_daily
+      recurrence
     });
     if (error) throw new Error(error.message);
     revalidatePath("/");

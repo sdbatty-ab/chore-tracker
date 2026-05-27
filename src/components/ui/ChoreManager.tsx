@@ -17,6 +17,8 @@ interface Chore {
   points: number;
   status: string;
   assigned_to: string | null;
+  recurrence?: string;
+  is_daily?: boolean;
   profiles?: { name: string } | null;
 }
 
@@ -31,7 +33,7 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
   const [newChoreTitle, setNewChoreTitle] = useState("");
   const [newChorePoints, setNewChorePoints] = useState(10);
   const [newChoreAssignedTo, setNewChoreAssignedTo] = useState<string | null>(null);
-  const [newChoreIsDaily, setNewChoreIsDaily] = useState(false);
+  const [newChoreRecurrence, setNewChoreRecurrence] = useState("none");
   const [isSaving, setIsSaving] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   
@@ -49,11 +51,11 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
     if (!newChoreTitle.trim()) return;
     setIsSaving(true);
     try {
-      await addChore(newChoreTitle, "Daily chore", newChorePoints, newChoreAssignedTo || "", newChoreIsDaily);
+      await addChore(newChoreTitle, "Daily chore", newChorePoints, newChoreAssignedTo || "", newChoreRecurrence);
       setNewChoreTitle("");
       setNewChorePoints(10);
       setNewChoreAssignedTo(null);
-      setNewChoreIsDaily(false);
+      setNewChoreRecurrence("none");
       setIsAddingChore(false);
       setIsPointsUnlocked(false);
     } catch (err) {
@@ -202,20 +204,23 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
                   ))}
                 </select>
               </div>
-              <div className="md:col-span-4 flex items-center justify-between mt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={newChoreIsDaily}
-                    onChange={(e) => setNewChoreIsDaily(e.target.checked)}
-                    className="w-5 h-5 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-                  />
-                  <span className="text-sm font-semibold text-gray-700">Make this a Daily Chore</span>
-                </label>
+              <div className="md:col-span-4 flex items-center justify-between mt-2 gap-4 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat</label>
+                  <select 
+                    value={newChoreRecurrence}
+                    onChange={(e) => setNewChoreRecurrence(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-500/50 text-gray-700"
+                  >
+                    <option value="none">Does Not Repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                </div>
                 <button 
                   type="submit" 
                   disabled={!newChoreTitle.trim() || isSaving}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50"
+                  className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 mt-auto"
                 >
                   {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
                   Create Chore
@@ -278,7 +283,14 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
                   <div className="flex items-center gap-4">
                     <button onClick={() => handleToggle(chore.id, chore.status)} className="w-6 h-6 rounded-full border-2 border-gray-300 hover:border-indigo-500 focus:outline-none transition-colors"></button>
                     <div>
-                      <p className="font-medium text-gray-900">{chore.title}</p>
+                      <p className="font-medium text-gray-900 flex items-center gap-2">
+                        {chore.title}
+                        {(chore.recurrence === "daily" || chore.recurrence === "weekly" || chore.is_daily) && (
+                          <span className="text-[10px] uppercase font-bold bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded flex items-center gap-1">
+                            🔁 {chore.recurrence || 'daily'}
+                          </span>
+                        )}
+                      </p>
                       {chore.profiles && (
                         <p className="text-xs font-semibold text-indigo-500 mt-0.5 flex items-center gap-1">
                           <User className="h-3 w-3" /> {chore.profiles.name}
