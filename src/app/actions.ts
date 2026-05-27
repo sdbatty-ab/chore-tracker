@@ -282,7 +282,7 @@ export async function removeProfile(id: string) {
   revalidatePath("/");
 }
 
-export async function addChore(title: string, description: string, points: number, assigned_to: string, recurrence: string = 'none') {
+export async function addChore(title: string, description: string, points: number, assigned_to: string | null, recurrence: string = 'none') {
   const family = await getFamily();
   if (family) {
     const { error } = await supabase.from("chores").insert({
@@ -290,7 +290,7 @@ export async function addChore(title: string, description: string, points: numbe
       title,
       description,
       points,
-      assigned_to,
+      assigned_to: assigned_to || null,
       status: "pending",
       recurrence
     });
