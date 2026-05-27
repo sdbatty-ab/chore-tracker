@@ -179,6 +179,19 @@ export async function getRewards() {
   return data;
 }
 
+export async function getRewardClaims() {
+  const { data, error } = await supabase
+    .from("reward_claims")
+    .select("*, rewards(*)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching claims:", error);
+    return [];
+  }
+  return data;
+}
+
 export async function getGoals() {
   const { data, error } = await supabase
     .from("goals")

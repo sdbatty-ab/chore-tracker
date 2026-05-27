@@ -18,6 +18,7 @@ interface Chore {
   points: number;
   status: string;
   is_daily: boolean;
+  created_at?: string;
 }
 
 interface Goal {
@@ -27,7 +28,17 @@ interface Goal {
   current_points: number;
 }
 
-export function MemberDashboard({ profile, chores, goals }: { profile: Profile, chores: Chore[], goals: Goal[] }) {
+interface RewardClaim {
+  id: string;
+  created_at: string;
+  status: string;
+  rewards?: {
+    title: string;
+    points_cost: number;
+  }
+}
+
+export function MemberDashboard({ profile, chores, goals, claims = [] }: { profile: Profile, chores: Chore[], goals: Goal[], claims?: RewardClaim[] }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [loadingItems, setLoadingItems] = useState<Record<string, boolean>>({});
 
@@ -44,6 +55,24 @@ export function MemberDashboard({ profile, chores, goals }: { profile: Profile, 
     { name: "Platinum Star", threshold: 5000, icon: Star, color: "text-cyan-500", bg: "bg-cyan-100", border: "border-cyan-300" },
     { name: "Diamond Crown", threshold: 10000, icon: Crown, color: "text-indigo-500", bg: "bg-indigo-100", border: "border-indigo-300" },
   ];
+
+  // Build Ledger timeline
+  const ledgerItems = [
+    ...completedChores.map(c => ({
+      id: c.id,
+      title: c.title,
+      points: c.points,
+      type: 'earned',
+      date: c.created_at || new Date().toISOString()
+    })),
+    ...claims.map(c => ({
+      id: c.id,
+      title: c.rewards?.title || 'Reward',
+      points: c.rewards?.points_cost || 0,
+      type: 'spent',
+      date: c.created_at
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const handleChoreComplete = async (id: string, currentStatus: string) => {
     setLoadingItems(prev => ({ ...prev, [id]: true }));
@@ -204,6 +233,34 @@ export function MemberDashboard({ profile, chores, goals }: { profile: Profile, 
                       </div>
                     </div>
                     <span className="font-black text-yellow-600 bg-yellow-100 px-4 py-2 rounded-xl">+{chore.points}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Point Ledger */}
+          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm mt-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Award className="h-7 w-7 text-indigo-500" />
+              Point Ledger
+            </h2>
+            
+            {ledgerItems.length === 0 ? (
+              <p className="text-center py-8 text-gray-500">No point history yet. Start doing chores to earn points!</p>
+            ) : (
+              <div className="space-y-3">
+                {ledgerItems.slice(0, 15).map(item => (
+                  <div key={item.id} className="flex items-center justify-between p-3 border-b border-gray-50 last:border-0">
+                    <div>
+                      <p className="font-bold text-gray-900">{item.title}</p>
+                      <p className="text-xs text-gray-400">{new Date(item.date).toLocaleDateString()}</p>
+                    </div>
+                    {item.type === 'earned' ? (
+                      <span className="font-bold text-green-600 bg-green-50 px-3 py-1 rounded-lg">+{item.points}</span>
+                    ) : (
+                      <span className="font-bold text-red-500 bg-red-50 px-3 py-1 rounded-lg">-{item.points}</span>
+                    )}
                   </div>
                 ))}
               </div>
