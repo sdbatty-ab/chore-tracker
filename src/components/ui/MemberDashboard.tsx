@@ -92,7 +92,7 @@ export function MemberDashboard({ profile, chores, goals, claims = [] }: { profi
   const handleLogProgress = async (id: string) => {
     setLoadingItems(prev => ({ ...prev, [id]: true }));
     try {
-      await logGoalProgress(id);
+      await logGoalProgress(id, profile.id);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 2000);
     } catch (err) {

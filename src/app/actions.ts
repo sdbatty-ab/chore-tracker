@@ -371,12 +371,14 @@ export async function removeRule(id: string) {
   revalidatePath("/rules");
 }
 
-export async function addGoal(title: string, target_points: number, profileId: string | null = null) {
+export async function addGoal(title: string, target_points: number, profileId: string | null = null, progress_points_reward: number = 20, completion_points_reward: number = 200) {
   const { error } = await supabase.from("goals").insert({
     title,
     target_points,
     current_points: 0,
-    profile_id: profileId
+    profile_id: profileId,
+    progress_points_reward,
+    completion_points_reward
   });
   if (error) throw new Error(error.message);
   revalidatePath("/rules");
@@ -520,17 +522,31 @@ export async function getEvents() {
 
 // Removing uploadCalendarFile since we're using live URL sync now
 
-export async function logGoalProgress(goalId: string) {
+export async function logGoalProgress(goalId: string, profileId: string) {
   const { data: goal } = await supabase.from("goals").select("*").eq("id", goalId).single();
   if (!goal) throw new Error("Goal not found");
   
-  // Increment progress visually by 10 points/units for every click.
-  const newAmount = Math.min((goal.current_points || 0) + 10, goal.target_points);
+  if (goal.current_points >= goal.target_points) {
+    return; // Already completed
+  }
+  
+  // Increment progress by 1 for every click.
+  const newAmount = Math.min((goal.current_points || 0) + 1, goal.target_points);
   
   const { error } = await supabase.from("goals").update({ current_points: newAmount }).eq("id", goalId);
   if (error) throw new Error(error.message);
+  
+  // Grant progress points
+  await grantPoints(profileId, goal.progress_points_reward ?? 20);
+  
+  // Grant completion bonus if hit target
+  if (newAmount >= goal.target_points) {
+    await grantPoints(profileId, goal.completion_points_reward ?? 200);
+  }
+  
   revalidatePath("/rules");
   revalidatePath("/");
+  revalidatePath("/member/[id]", "page");
 }
 
 

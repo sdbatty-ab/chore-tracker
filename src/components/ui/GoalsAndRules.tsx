@@ -43,6 +43,8 @@ export function GoalsAndRules({ initialRules, initialGoals, profiles }: GoalsAnd
   const [newRuleTitle, setNewRuleTitle] = useState("");
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [newGoalTarget, setNewGoalTarget] = useState(100);
+  const [newGoalProgressPoints, setNewGoalProgressPoints] = useState(20);
+  const [newGoalCompletionPoints, setNewGoalCompletionPoints] = useState(200);
   const [newGoalProfileId, setNewGoalProfileId] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
@@ -67,9 +69,11 @@ export function GoalsAndRules({ initialRules, initialGoals, profiles }: GoalsAnd
     if (!newGoalTitle.trim() || newGoalTarget <= 0) return;
     setLoadingAction("goal");
     try {
-      await addGoal(newGoalTitle, newGoalTarget, newGoalProfileId);
+      await addGoal(newGoalTitle, newGoalTarget, newGoalProfileId, newGoalProgressPoints, newGoalCompletionPoints);
       setNewGoalTitle("");
       setNewGoalTarget(100);
+      setNewGoalProgressPoints(20);
+      setNewGoalCompletionPoints(200);
       setNewGoalProfileId(null);
       setIsAddingGoal(false);
     } catch (err) {
@@ -227,12 +231,12 @@ export function GoalsAndRules({ initialRules, initialGoals, profiles }: GoalsAnd
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Target Points</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Target Amount (e.g. 10 books)</label>
                     <input 
                       type="number" 
                       value={newGoalTarget}
                       onChange={(e) => setNewGoalTarget(Number(e.target.value))}
-                      min={10}
+                      min={1}
                       className="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-shadow"
                     />
                   </div>
@@ -250,6 +254,28 @@ export function GoalsAndRules({ initialRules, initialGoals, profiles }: GoalsAnd
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Points per Log</label>
+                    <input 
+                      type="number" 
+                      value={newGoalProgressPoints}
+                      onChange={(e) => setNewGoalProgressPoints(Number(e.target.value))}
+                      min={0}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-shadow"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Completion Bonus</label>
+                    <input 
+                      type="number" 
+                      value={newGoalCompletionPoints}
+                      onChange={(e) => setNewGoalCompletionPoints(Number(e.target.value))}
+                      min={0}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-shadow"
+                    />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
