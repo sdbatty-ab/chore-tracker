@@ -1,5 +1,7 @@
 import { FamilyPhotoGallery } from "@/components/ui/FamilyPhotoGallery";
 
+export const dynamic = "force-dynamic";
+
 export default function PhotosPage() {
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto w-full">

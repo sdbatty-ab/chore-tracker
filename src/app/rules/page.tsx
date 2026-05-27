@@ -1,6 +1,8 @@
 import { GoalsAndRules } from "@/components/ui/GoalsAndRules";
 import { getGoals, getRules, getProfiles } from "../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function RulesPage() {
   const rules = await getRules();
   const goals = await getGoals();

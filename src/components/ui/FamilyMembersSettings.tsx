@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus, Settings, Shield, User, Loader2, Save, Trash2 } from "lucide-react";
-import { updateFamilySettings, addProfile, removeProfile } from "@/app/actions";
+import { UserPlus, Settings, Shield, User, Loader2, Save, Trash2, Key } from "lucide-react";
+import { updateFamilySettings, addProfile, removeProfile, updatePin } from "@/app/actions";
 import { motion } from "framer-motion";
 
 export interface Family {
@@ -27,6 +27,9 @@ export function FamilyMembersSettings({ initialFamily, initialProfiles }: Settin
   const [requireApproval, setRequireApproval] = useState(initialFamily?.require_approval ?? false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   
+  const [newPin, setNewPin] = useState("");
+  const [isSavingPin, setIsSavingPin] = useState(false);
+  
   const [newProfileName, setNewProfileName] = useState("");
   const [newProfileRole, setNewProfileRole] = useState("kid");
   const [isAddingProfile, setIsAddingProfile] = useState(false);
@@ -41,6 +44,22 @@ export function FamilyMembersSettings({ initialFamily, initialProfiles }: Settin
       alert("Failed to save settings");
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleSavePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPin.length !== 4) return;
+    setIsSavingPin(true);
+    try {
+      await updatePin(newPin);
+      alert("PIN updated successfully!");
+      setNewPin("");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update PIN");
+    } finally {
+      setIsSavingPin(false);
     }
   };
 
@@ -97,6 +116,41 @@ export function FamilyMembersSettings({ initialFamily, initialProfiles }: Settin
               Save Preferences
             </button>
           </div>
+        </div>
+
+        {/* Change PIN Settings */}
+        <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm mt-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-slate-100 text-slate-600 rounded-xl">
+              <Key className="h-5 w-5" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Parent PIN</h2>
+          </div>
+          
+          <form onSubmit={handleSavePin} className="space-y-4">
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <label className="block text-sm font-bold text-gray-900 mb-2">New 4-Digit PIN</label>
+              <input 
+                type="password" 
+                pattern="[0-9]*" 
+                inputMode="numeric"
+                maxLength={4}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="e.g. 1234"
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 text-center text-2xl tracking-widest"
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              disabled={newPin.length !== 4 || isSavingPin}
+              className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50"
+            >
+              {isSavingPin ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Change PIN
+            </button>
+          </form>
         </div>
       </div>
 

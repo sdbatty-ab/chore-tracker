@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const seasonalBackgrounds = {
-  winter: ["theme_snowboard_1779726238907.png", "theme_cabin_1779726276506.png"],
-  spring: ["theme_soccer_1779726223181.png", "theme_themepark_1779726265812.png"],
-  summer: ["theme_water_1779726253885.png", "theme_themepark_1779726265812.png", "theme_soccer_1779726223181.png"],
-  fall: ["theme_cabin_1779726276506.png", "theme_soccer_1779726223181.png"]
+  winter: ["theme_snowboard_1779726238907.png", "theme_cabin_1779726276506.png", "theme_realistic_snowboard_1779890829548.png", "theme_realistic_cabin_1779890875969.png"],
+  spring: ["theme_soccer_1779726223181.png", "theme_themepark_1779726265812.png", "theme_realistic_park_1779890861760.png"],
+  summer: ["theme_water_1779726253885.png", "theme_themepark_1779726265812.png", "theme_soccer_1779726223181.png", "theme_realistic_beach_1779890845853.png"],
+  fall: ["theme_cabin_1779726276506.png", "theme_soccer_1779726223181.png", "theme_realistic_park_1779890861760.png", "theme_realistic_cabin_1779890875969.png"]
 };
 
 export function BackgroundManager({ children }: { children: React.ReactNode }) {

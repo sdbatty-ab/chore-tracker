@@ -234,6 +234,22 @@ export async function addProfile(name: string, role: string) {
   revalidatePath("/settings");
 }
 
+export async function verifyPin(pin: string) {
+  const family = await getFamily();
+  if (!family) return false;
+  const expectedPin = family.settings_pin || "1234";
+  return expectedPin === pin;
+}
+
+export async function updatePin(newPin: string) {
+  const family = await getFamily();
+  if (family) {
+    const { error } = await supabase.from("families").update({ settings_pin: newPin }).eq("id", family.id);
+    if (error) throw new Error(error.message);
+    revalidatePath("/settings");
+  }
+}
+
 export async function removeProfile(id: string) {
   const { error } = await supabase.from("profiles").delete().eq("id", id);
   if (error) throw new Error(error.message);
@@ -264,9 +280,36 @@ export async function addReward(title: string, description: string, points_cost:
     title,
     description,
     points_cost
-  });
+export async function addReward(title: string, description: string, points_cost: number, image_url: string | null = null) {
+  const family = await getFamily();
+  if (family) {
+    const { error } = await supabase.from("rewards").insert({
+      family_id: family.id,
+      title,
+      description,
+      points_cost,
+      image_url
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/rewards");
+  }
+}
+
+export async function uploadRewardImage(formData: FormData) {
+  const file = formData.get("file") as File;
+  if (!file) return null;
+  
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileName = `rewards/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  
+  const { data, error } = await supabase.storage
+    .from("family-photos")
+    .upload(fileName, buffer, { contentType: file.type });
+    
   if (error) throw new Error(error.message);
-  revalidatePath("/rewards");
+  
+  const { data: publicUrlData } = supabase.storage.from("family-photos").getPublicUrl(fileName);
+  return publicUrlData.publicUrl;
 }
 
 export async function addRule(title: string) {

@@ -2,6 +2,8 @@ import { RewardsStore } from "@/components/ui/RewardsStore";
 import { AddRewardForm } from "@/components/ui/AddRewardForm";
 import { getRewards } from "../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function RewardsPage() {
   const rewards = await getRewards();
   const mockPoints = 450; // Temporarily mocked until we build the real points query

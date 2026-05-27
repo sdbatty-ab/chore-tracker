@@ -11,6 +11,7 @@ export interface Reward {
   title: string;
   description: string;
   points_cost: number;
+  image_url?: string | null;
 }
 
 interface RewardsStoreProps {
@@ -129,11 +130,19 @@ export function RewardsStore({ initialRewards, initialPoints }: RewardsStoreProp
                   : "border-gray-100 shadow-sm opacity-80"
               }`}
             >
-              <div className={`w-24 h-24 rounded-3xl mb-5 flex items-center justify-center text-4xl shadow-inner ${
-                canAfford ? "bg-gradient-to-br from-indigo-50 to-purple-100 text-indigo-600" : "bg-gray-50 text-gray-400"
-              }`}>
-                🎁
-              </div>
+              {reward.image_url ? (
+                  <img 
+                    src={reward.image_url} 
+                    alt={reward.title} 
+                    className="w-full h-32 object-cover rounded-2xl mb-4 shadow-sm"
+                  />
+                ) : (
+                  <div className={`w-24 h-24 rounded-3xl mb-5 flex items-center justify-center text-4xl shadow-inner ${
+                    canAfford ? "bg-gradient-to-br from-indigo-50 to-purple-100 text-indigo-600" : "bg-gray-50 text-gray-400"
+                  }`}>
+                    🎁
+                  </div>
+                )}
               <h3 className="font-extrabold text-xl text-gray-900 mb-2 line-clamp-1 w-full" title={reward.title}>{reward.title}</h3>
               <p className="text-sm text-gray-500 mb-6 flex-grow line-clamp-2 w-full">{reward.description || "An awesome reward just for you!"}</p>
               

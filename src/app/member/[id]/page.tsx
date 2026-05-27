@@ -2,6 +2,8 @@ import { getChores, getGoals, getProfiles } from "../../actions";
 import { MemberDashboard } from "@/components/ui/MemberDashboard";
 import { notFound } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   

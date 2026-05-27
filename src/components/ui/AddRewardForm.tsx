@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
-import { addReward } from "@/app/actions";
+import { useState, useRef } from "react";
+import { Plus, Loader2, Image as ImageIcon, X } from "lucide-react";
+import { addReward, uploadRewardImage } from "@/app/actions";
 
 export function AddRewardForm() {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [points, setPoints] = useState(100);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,10 +30,19 @@ export function AddRewardForm() {
 
     setIsSaving(true);
     try {
-      await addReward(title, description, points);
+      let imageUrl = null;
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        imageUrl = await uploadRewardImage(formData);
+      }
+      
+      await addReward(title, description, points, imageUrl);
       setTitle("");
       setDescription("");
       setPoints(100);
+      setImageFile(null);
+      setImagePreview(null);
       setIsOpen(false);
     } catch (err) {
       console.error(err);
@@ -78,6 +100,42 @@ export function AddRewardForm() {
             min="1"
             className="w-full max-w-xs bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50"
             required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-2">Reward Image (Optional)</label>
+          {imagePreview ? (
+            <div className="relative inline-block">
+              <img src={imagePreview} alt="Preview" className="h-32 w-32 object-cover rounded-2xl border-2 border-indigo-100 shadow-sm" />
+              <button 
+                type="button"
+                onClick={() => {
+                  setImageFile(null);
+                  setImagePreview(null);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                className="absolute -top-2 -right-2 bg-white text-gray-500 hover:text-red-500 rounded-full p-1 shadow-md border border-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-32 w-32 bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:bg-gray-100 hover:border-indigo-300 hover:text-indigo-500 transition-colors"
+            >
+              <ImageIcon className="h-6 w-6" />
+              <span className="text-xs font-bold">Upload Image</span>
+            </button>
+          )}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImageChange} 
+            accept="image/*" 
+            className="hidden" 
           />
         </div>
 

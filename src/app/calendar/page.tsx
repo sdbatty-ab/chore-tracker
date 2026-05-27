@@ -1,6 +1,8 @@
 import { FullCalendar } from "@/components/ui/FullCalendar";
 import { getEvents } from "../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function CalendarPage() {
   const events = await getEvents();
   

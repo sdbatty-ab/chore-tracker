@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, CheckCircle, Clock, Trash2, Check, User, Loader2 } from "lucide-react";
-import { addChore, toggleChoreStatus, approveChore } from "@/app/actions";
+import { Plus, CheckCircle, Clock, Trash2, Check, User, Loader2, Lock, Unlock } from "lucide-react";
+import { addChore, toggleChoreStatus, approveChore, verifyPin } from "@/app/actions";
 import { motion, AnimatePresence } from "framer-motion";
 import Confetti from "react-confetti";
 
@@ -34,6 +34,11 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
   const [newChoreIsDaily, setNewChoreIsDaily] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  
+  const [isPointsUnlocked, setIsPointsUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [pinError, setPinError] = useState(false);
 
   const pendingApprovalChores = initialChores.filter(c => c.status === "completed");
   const pendingChores = initialChores.filter(c => c.status === "pending");
@@ -50,11 +55,32 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
       setNewChoreAssignedTo(null);
       setNewChoreIsDaily(false);
       setIsAddingChore(false);
+      setIsPointsUnlocked(false);
     } catch (err) {
       console.error(err);
       alert("Failed to add chore");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleVerifyPin = async () => {
+    if (pinInput.length !== 4) return;
+    setIsVerifyingPin(true);
+    setPinError(false);
+    try {
+      const isValid = await verifyPin(pinInput);
+      if (isValid) {
+        setIsPointsUnlocked(true);
+        setPinInput("");
+      } else {
+        setPinError(true);
+        setPinInput("");
+      }
+    } catch (e) {
+      setPinError(true);
+    } finally {
+      setIsVerifyingPin(false);
     }
   };
 
@@ -125,13 +151,41 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
               </div>
               <div className="md:col-span-1">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Points</label>
-                <input 
-                  type="number" 
-                  value={newChorePoints}
-                  onChange={(e) => setNewChorePoints(Number(e.target.value))}
-                  min={1}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-500/50"
-                />
+                {!isPointsUnlocked ? (
+                  <div className="flex flex-col gap-2 relative">
+                    <div className="flex gap-2">
+                      <input 
+                        type="password"
+                        pattern="[0-9]*"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="PIN"
+                        value={pinInput}
+                        onChange={(e) => {
+                          setPinInput(e.target.value.replace(/[^0-9]/g, ''));
+                          setPinError(false);
+                        }}
+                        className={`w-full bg-gray-50 border rounded-xl px-2 text-center focus:ring-2 focus:ring-teal-500/50 ${pinError ? 'border-red-300 text-red-900 bg-red-50' : 'border-gray-200'}`}
+                      />
+                      <button 
+                        type="button"
+                        onClick={handleVerifyPin}
+                        disabled={pinInput.length !== 4 || isVerifyingPin}
+                        className="bg-gray-900 text-white p-2.5 rounded-xl hover:bg-gray-800 disabled:opacity-50"
+                      >
+                        {isVerifyingPin ? <Loader2 className="h-5 w-5 animate-spin" /> : <Unlock className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <input 
+                    type="number" 
+                    value={newChorePoints}
+                    onChange={(e) => setNewChorePoints(Number(e.target.value))}
+                    min={0}
+                    className="w-full bg-gray-50 border border-teal-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-500/50 outline-none"
+                  />
+                )}
               </div>
               <div className="md:col-span-1">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Assign To</label>

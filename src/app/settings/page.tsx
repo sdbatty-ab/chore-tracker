@@ -1,6 +1,9 @@
 import { FamilyMembersSettings } from "@/components/ui/FamilyMembersSettings";
 import { CalendarSettings } from "@/components/ui/CalendarSettings";
+import { PinLock } from "@/components/ui/PinLock";
 import { getFamily, getProfiles, getCalendarLinks } from "../actions";
+
+export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const family = await getFamily();
@@ -20,10 +23,15 @@ export default async function SettingsPage() {
           Manage your family members and household preferences.
         </p>
       </header>
-      
-      <FamilyMembersSettings initialFamily={family} initialProfiles={profiles as any[]} />
-      
-      <CalendarSettings initialLinks={calendarLinks as any[]} />
+      <PinLock>
+        <div className="mb-12">
+          <FamilyMembersSettings initialFamily={family as any} initialProfiles={profiles as any[]} />
+        </div>
+        
+        <div className="mb-12">
+          <CalendarSettings initialLinks={calendarLinks as any[]} />
+        </div>
+      </PinLock>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { ChoreManager } from "@/components/ui/ChoreManager";
 import { getChores, getProfiles, getFamily } from "../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChoresPage() {
   const chores = await getChores();
   const profiles = await getProfiles();
