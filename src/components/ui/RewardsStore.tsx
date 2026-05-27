@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Gift, Star, ShoppingCart, Check, Loader2, Sparkles, X, Edit, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Confetti from "react-confetti";
