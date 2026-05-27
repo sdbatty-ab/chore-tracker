@@ -22,7 +22,7 @@ interface RewardsStoreProps {
 
 export function RewardsStore({ initialRewards, kids = [] }: RewardsStoreProps) {
   const [selectedKidId, setSelectedKidId] = useState<string>(kids[0]?.id || "");
-  const [userPoints, setUserPoints] = useState(kids[0]?.points_balance || 0);
+  const [userPoints, setUserPoints] = useState<number>(kids[0]?.points_balance || 0);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [claimedReward, setClaimedReward] = useState<Reward | null>(null);
