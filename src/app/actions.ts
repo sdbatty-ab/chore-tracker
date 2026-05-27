@@ -275,11 +275,6 @@ export async function addChore(title: string, description: string, points: numbe
   }
 }
 
-export async function addReward(title: string, description: string, points_cost: number) {
-  const { error } = await supabase.from("rewards").insert({
-    title,
-    description,
-    points_cost
 export async function addReward(title: string, description: string, points_cost: number, image_url: string | null = null) {
   const family = await getFamily();
   if (family) {
