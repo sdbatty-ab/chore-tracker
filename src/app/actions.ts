@@ -440,10 +440,11 @@ export async function getCalendarLinks() {
 export async function addCalendarLink(name: string, url: string) {
   const family = await getFamily();
   if (family) {
+    const formattedUrl = url.replace(/^webcal:\/\//i, 'https://');
     const { error } = await supabase.from("calendar_links").insert({
       family_id: family.id,
       name,
-      url
+      url: formattedUrl
     });
     if (error) throw new Error(error.message);
     revalidatePath("/calendar");
@@ -468,7 +469,8 @@ export async function getEvents() {
     // Fetch all calendars concurrently
     const fetchPromises = links.map(async (link) => {
       try {
-        const res = await fetch(link.url, { cache: 'no-store' });
+        const fetchUrl = link.url.replace(/^webcal:\/\//i, 'https://');
+        const res = await fetch(fetchUrl, { cache: 'no-store' });
         const text = await res.text();
         
         if (!text.includes("BEGIN:VCALENDAR")) {
