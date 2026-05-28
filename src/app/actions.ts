@@ -8,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function getFamily() {
-  const { data, error } = await supabase.from("families").select("*").limit(1).single();
+  const { data, error } = await supabase.from("families").select("*").order("created_at", { ascending: true }).limit(1).single();
   if (error || !data) {
     // If no family exists, create a default one
     const { data: newFamily, error: insertError } = await supabase
