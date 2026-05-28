@@ -97,8 +97,16 @@ export function FullCalendar({ initialEvents }: { initialEvents: Event[] }) {
               
               const dayEvents = initialEvents.filter(e => {
                 const eStart = new Date(e.start_time);
-                // Note: multi-day events are more complex, this checks if it starts on this day.
-                return eStart.toDateString() === dayStr;
+                const eStartDay = new Date(eStart.getFullYear(), eStart.getMonth(), eStart.getDate());
+                
+                const eEnd = new Date(e.end_time);
+                const eEndDay = new Date(eEnd.getFullYear(), eEnd.getMonth(), eEnd.getDate());
+                
+                if (e.is_all_day && eStartDay.getTime() !== eEndDay.getTime()) {
+                  return dayDate >= eStartDay && dayDate < eEndDay;
+                } else {
+                  return dayDate >= eStartDay && dayDate <= eEndDay;
+                }
               });
 
               const isToday = new Date().toDateString() === dayStr;
