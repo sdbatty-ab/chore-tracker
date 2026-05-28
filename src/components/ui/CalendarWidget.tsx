@@ -28,7 +28,9 @@ export function CalendarWidget({ initialEvents = [] }: { initialEvents?: Event[]
       
       <div className="space-y-4">
         {upcomingEvents.map((event) => {
-          const startTime = new Date(event.start_time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+          const startDate = new Date(event.start_time);
+          const timeString = startDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+          const dateString = startDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
           
           return (
             <div key={event.id} className="flex flex-col gap-1 rounded-xl bg-gray-50 p-4 transition-all hover:shadow-md border border-transparent hover:border-gray-200">
@@ -38,9 +40,15 @@ export function CalendarWidget({ initialEvents = [] }: { initialEvents?: Event[]
                 </span>
               </div>
               <p className="mt-1 font-medium text-gray-900 truncate">{event.title}</p>
-              <div className="mt-2 flex items-center gap-1.5 text-sm text-gray-500">
-                <Clock className="h-4 w-4" />
-                <span>{event.is_all_day ? "All Day" : startTime}</span>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>{dateString}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  <span>{event.is_all_day ? "All Day" : timeString}</span>
+                </div>
               </div>
             </div>
           );
