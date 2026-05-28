@@ -505,11 +505,16 @@ export async function getEvents() {
           try {
             const event = new ICAL.Event(vevent);
             if (!event.startDate) return null;
+            const isAllDay = event.startDate.isDate;
+            const startTimeStr = isAllDay ? `${event.startDate.toString()}T00:00:00` : event.startDate.toJSDate().toISOString();
+            const endTimeStr = event.endDate ? (event.endDate.isDate ? `${event.endDate.toString()}T00:00:00` : event.endDate.toJSDate().toISOString()) : startTimeStr;
+            
             return {
               id: Math.random().toString(),
               title: event.summary || "Busy",
-              start_time: event.startDate.toJSDate().toISOString(),
-              end_time: event.endDate ? event.endDate.toJSDate().toISOString() : event.startDate.toJSDate().toISOString(),
+              start_time: startTimeStr,
+              end_time: endTimeStr,
+              is_all_day: isAllDay,
               location: event.location || null,
               calendar_name: link.name
             };

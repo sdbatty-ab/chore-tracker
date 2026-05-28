@@ -8,6 +8,7 @@ interface Event {
   title: string;
   start_time: string;
   end_time: string;
+  is_all_day?: boolean;
 }
 
 export function CalendarWidget({ initialEvents = [] }: { initialEvents?: Event[] }) {
@@ -39,7 +40,7 @@ export function CalendarWidget({ initialEvents = [] }: { initialEvents?: Event[]
               <p className="mt-1 font-medium text-gray-900 truncate">{event.title}</p>
               <div className="mt-2 flex items-center gap-1.5 text-sm text-gray-500">
                 <Clock className="h-4 w-4" />
-                <span>{startTime}</span>
+                <span>{event.is_all_day ? "All Day" : startTime}</span>
               </div>
             </div>
           );

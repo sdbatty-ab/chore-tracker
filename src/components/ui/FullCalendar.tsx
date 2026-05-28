@@ -10,6 +10,7 @@ interface Event {
   title: string;
   start_time: string;
   end_time: string;
+  is_all_day?: boolean;
   location: string | null;
   calendar_name?: string;
 }
