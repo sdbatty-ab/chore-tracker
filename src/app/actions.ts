@@ -478,7 +478,26 @@ export async function getEvents() {
           return [];
         }
         
-        const jcalData = ICAL.parse(text);
+        // Pre-process text to fix badly folded lines (common in Apple calendars)
+        let fixedText = "";
+        const lines = text.split(/\r?\n/);
+        if (lines.length > 0) {
+          fixedText = lines[0] + '\r\n';
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (line.trim() === '') continue;
+            // Valid iCal lines either start with space/tab (continuation) or contain : or ;
+            if (!line.startsWith(' ') && !line.startsWith('\t') && !line.includes(':') && !line.includes(';')) {
+              fixedText += ' ' + line + '\r\n';
+            } else {
+              fixedText += line + '\r\n';
+            }
+          }
+        } else {
+          fixedText = text;
+        }
+        
+        const jcalData = ICAL.parse(fixedText);
         const comp = new ICAL.Component(jcalData);
         const vevents = comp.getAllSubcomponents("vevent");
         
