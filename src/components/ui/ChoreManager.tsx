@@ -19,6 +19,8 @@ interface Chore {
   assigned_to: string | null;
   recurrence?: string;
   is_daily?: boolean;
+  due_date?: string | null;
+  recurrence_day?: string | null;
   profiles?: { name: string } | null;
 }
 
