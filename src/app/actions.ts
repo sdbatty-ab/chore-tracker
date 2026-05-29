@@ -306,6 +306,27 @@ export async function addChore(title: string, description: string, points: numbe
   }
 }
 
+export async function editChore(id: string, title: string, points: number, assigned_to: string | null, recurrence: string = 'none', due_date: string | null = null, recurrence_day: string | null = null) {
+  const { error } = await supabase.from("chores").update({
+    title,
+    points,
+    assigned_to: assigned_to || null,
+    recurrence,
+    due_date: due_date || null,
+    recurrence_day: recurrence_day || null
+  }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+  revalidatePath("/chores");
+}
+
+export async function deleteChore(id: string) {
+  const { error } = await supabase.from("chores").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+  revalidatePath("/chores");
+}
+
 export async function addReward(title: string, description: string, points_cost: number, image_url: string | null = null) {
   const family = await getFamily();
   if (family) {
