@@ -34,6 +34,8 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
   const [newChorePoints, setNewChorePoints] = useState(10);
   const [newChoreAssignedTo, setNewChoreAssignedTo] = useState<string | null>(null);
   const [newChoreRecurrence, setNewChoreRecurrence] = useState("none");
+  const [newChoreDueDate, setNewChoreDueDate] = useState("");
+  const [newChoreRecurrenceDay, setNewChoreRecurrenceDay] = useState("Monday");
   const [isSaving, setIsSaving] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   
@@ -51,11 +53,21 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
     if (!newChoreTitle.trim()) return;
     setIsSaving(true);
     try {
-      await addChore(newChoreTitle, "Daily chore", newChorePoints, newChoreAssignedTo || "", newChoreRecurrence);
+      await addChore(
+        newChoreTitle, 
+        "Daily chore", 
+        newChorePoints, 
+        newChoreAssignedTo || "", 
+        newChoreRecurrence, 
+        newChoreRecurrence === "none" && newChoreDueDate ? newChoreDueDate : null, 
+        newChoreRecurrence === "weekly" ? newChoreRecurrenceDay : null
+      );
       setNewChoreTitle("");
       setNewChorePoints(10);
       setNewChoreAssignedTo(null);
       setNewChoreRecurrence("none");
+      setNewChoreDueDate("");
+      setNewChoreRecurrenceDay("Monday");
       setIsAddingChore(false);
       setIsPointsUnlocked(false);
     } catch (err) {
@@ -213,14 +225,43 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-500/50 text-gray-700"
                   >
                     <option value="none">Does Not Repeat</option>
-                    <option value="daily">Daily</option>
+                    <option value="daily">Daily (Every Day)</option>
+                    <option value="weekdays">Weekdays (Mon-Fri)</option>
                     <option value="weekly">Weekly</option>
                   </select>
                 </div>
+                
+                {newChoreRecurrence === "none" && (
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Due Date (Optional)</label>
+                    <input 
+                      type="date"
+                      value={newChoreDueDate}
+                      onChange={(e) => setNewChoreDueDate(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-500/50 text-gray-700"
+                    />
+                  </div>
+                )}
+
+                {newChoreRecurrence === "weekly" && (
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Day of Week</label>
+                    <select 
+                      value={newChoreRecurrenceDay}
+                      onChange={(e) => setNewChoreRecurrenceDay(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-500/50 text-gray-700"
+                    >
+                      {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <button 
                   type="submit" 
                   disabled={!newChoreTitle.trim() || isSaving}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 mt-auto"
+                  className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 mt-auto ml-auto"
                 >
                   {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
                   Create Chore

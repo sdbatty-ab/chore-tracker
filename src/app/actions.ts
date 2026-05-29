@@ -47,6 +47,10 @@ export async function getChores() {
     if (needsDailyReset) {
       // Also catch any legacy is_daily chores
       await supabase.from("chores").update({ status: "pending" }).eq("family_id", family.id).or("recurrence.eq.daily,is_daily.eq.true");
+      
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Monday-Friday
+        await supabase.from("chores").update({ status: "pending" }).eq("family_id", family.id).eq("recurrence", "weekdays");
+      }
     }
     if (needsWeeklyReset) {
       await supabase.from("chores").update({ status: "pending" }).eq("family_id", family.id).eq("recurrence", "weekly");
@@ -282,7 +286,7 @@ export async function removeProfile(id: string) {
   revalidatePath("/");
 }
 
-export async function addChore(title: string, description: string, points: number, assigned_to: string | null, recurrence: string = 'none') {
+export async function addChore(title: string, description: string, points: number, assigned_to: string | null, recurrence: string = 'none', due_date: string | null = null, recurrence_day: string | null = null) {
   const family = await getFamily();
   if (family) {
     const { error } = await supabase.from("chores").insert({
@@ -292,7 +296,9 @@ export async function addChore(title: string, description: string, points: numbe
       points,
       assigned_to: assigned_to || null,
       status: "pending",
-      recurrence
+      recurrence,
+      due_date: due_date || null,
+      recurrence_day: recurrence_day || null
     });
     if (error) throw new Error(error.message);
     revalidatePath("/");
