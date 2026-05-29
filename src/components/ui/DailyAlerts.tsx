@@ -2,7 +2,17 @@
 
 import { Bell, X } from "lucide-react";
 import { useState } from "react";
-import { format, isToday } from "date-fns";
+
+const isToday = (date: Date) => {
+  const today = new Date();
+  return date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
+};
+
+const formatTime = (date: Date) => {
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+};
 
 export function DailyAlerts({ chores = [], events = [] }: { chores?: any[], events?: any[] }) {
   const [isVisible, setIsVisible] = useState(true);
@@ -28,7 +38,7 @@ export function DailyAlerts({ chores = [], events = [] }: { chores?: any[], even
     if (isAllDay) {
        eventText = ` Don't forget, today is ${nextEvent.title}!`;
     } else {
-       eventText = ` ${nextEvent.title} is at ${format(new Date(nextEvent.start), 'h:mm a')}!`;
+       eventText = ` ${nextEvent.title} is at ${formatTime(new Date(nextEvent.start))}!`;
     }
   }
 
