@@ -41,7 +41,7 @@ export default async function Home() {
         </div>
       </div>
 
-      <DailyAlerts />
+      <DailyAlerts chores={chores as any[]} events={events as any[]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="col-span-1 lg:col-span-2 space-y-8">
