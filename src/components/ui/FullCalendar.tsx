@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar as CalendarIcon, Link as LinkIcon, Trash2, Loader2, Plus, ChevronLeft, ChevronRight, Globe } from "lucide-react";
+import { Calendar as CalendarIcon, Link as LinkIcon, Trash2, Loader2, Plus, ChevronLeft, ChevronRight, Globe, X } from "lucide-react";
 import { addCalendarLink, removeCalendarLink } from "@/app/actions";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Event {
   id: string;
@@ -24,6 +24,7 @@ interface CalendarLink {
 export function FullCalendar({ initialEvents }: { initialEvents: Event[] }) {
   // Monthly Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<{ date: Date, events: Event[] } | null>(null);
 
   // Calendar Math
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -112,7 +113,11 @@ export function FullCalendar({ initialEvents }: { initialEvents: Event[] }) {
               const isToday = new Date().toDateString() === dayStr;
 
               return (
-                <div key={day} className={`bg-white min-h-[120px] p-2 border-t border-gray-50 hover:bg-gray-50 transition-colors ${isToday ? 'bg-indigo-50/30' : ''}`}>
+                <div 
+                  key={day} 
+                  onClick={() => setSelectedDay({ date: dayDate, events: dayEvents })}
+                  className={`bg-white min-h-[120px] p-2 border-t border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${isToday ? 'bg-indigo-50/30' : ''}`}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <span className={`text-sm font-bold h-7 w-7 flex items-center justify-center rounded-full ${isToday ? 'bg-indigo-600 text-white' : 'text-gray-700'}`}>
                       {day}
@@ -120,7 +125,7 @@ export function FullCalendar({ initialEvents }: { initialEvents: Event[] }) {
                   </div>
                   <div className="space-y-1">
                     {dayEvents.map((evt, i) => (
-                      <div key={i} className="text-xs p-1.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold truncate cursor-pointer hover:bg-indigo-100 transition-colors" title={`${evt.title} (${evt.calendar_name || 'Family'})`}>
+                      <div key={i} className="text-xs p-1.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold truncate hover:bg-indigo-100 transition-colors" title={`${evt.title} (${evt.calendar_name || 'Family'})`}>
                         {evt.title}
                       </div>
                     ))}
@@ -131,6 +136,45 @@ export function FullCalendar({ initialEvents }: { initialEvents: Event[] }) {
           </div>
         </div>
       </div>
+
+      {/* Day Events Modal */}
+      <AnimatePresence>
+        {selectedDay && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedDay(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full relative max-h-[80vh] overflow-y-auto"
+            >
+              <button onClick={() => setSelectedDay(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-indigo-600" />
+                {selectedDay.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </h3>
+              
+              {selectedDay.events.length === 0 ? (
+                <p className="text-gray-500 italic text-center py-8">No events on this day.</p>
+              ) : (
+                <div className="space-y-3">
+                  {selectedDay.events.map((evt, i) => (
+                    <div key={i} className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                      <p className="font-bold text-indigo-900 leading-tight">{evt.title}</p>
+                      <p className="text-sm font-semibold text-indigo-600 mt-1 uppercase tracking-wider">{evt.calendar_name || 'Family Calendar'}</p>
+                      {evt.location && <p className="text-sm text-indigo-700 mt-1">📍 {evt.location}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
