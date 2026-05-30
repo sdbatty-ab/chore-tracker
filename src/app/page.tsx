@@ -68,7 +68,7 @@ export default async function Home() {
           </div>
           
           {/* Chore Checklist Feed */}
-          <ChoreChecklist initialChores={chores as any[]} />
+          <ChoreChecklist initialChores={chores as any[]} profiles={profiles as any[]} />
         </div>
 
         <div className="col-span-1 space-y-8">

@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckSquare, Target, Award, Trophy, Star, Shield, Crown, User, Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
+import { CheckSquare, Target, Award, Trophy, Star, Shield, Crown, User, Loader2, Calendar as CalendarIcon, AlertCircle, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { logGoalProgress, toggleChoreStatus } from "@/app/actions";
 import { useState } from "react";
 import Confetti from "react-confetti";
+import { motion, AnimatePresence } from "framer-motion";
 import { CalendarWidget } from "./CalendarWidget";
 
 interface Profile {
@@ -16,6 +17,7 @@ interface Profile {
 interface Chore {
   id: string;
   title: string;
+  description?: string;
   points: number;
   status: string;
   is_daily: boolean;
@@ -45,6 +47,7 @@ interface RewardClaim {
 export function MemberDashboard({ profile, chores, goals, claims = [], events = [] }: { profile: Profile, chores: Chore[], goals: Goal[], claims?: RewardClaim[], events?: any[] }) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [loadingItems, setLoadingItems] = useState<Record<string, boolean>>({});
+  const [expandedChoreId, setExpandedChoreId] = useState<string | null>(null);
 
   const pendingChores = chores.filter(c => c.status === "pending");
   const completedChores = chores.filter(c => c.status === "completed" || c.status === "approved");
@@ -253,21 +256,43 @@ export function MemberDashboard({ profile, chores, goals, claims = [], events = 
                     <h3 className="text-sm font-bold text-red-500 uppercase tracking-wider mb-3 flex items-center gap-1.5"><AlertCircle className="h-4 w-4"/> Due Today</h3>
                     <div className="space-y-3">
                       {dueToday.map(chore => (
-                        <div key={chore.id} className="flex items-center justify-between p-4 rounded-2xl border-2 border-red-100 hover:border-red-300 transition-colors bg-red-50/30 group">
-                          <div className="flex items-center gap-4">
-                            <button 
-                              onClick={() => handleChoreComplete(chore.id, chore.status)} 
-                              disabled={loadingItems[chore.id]}
-                              className="w-8 h-8 rounded-full border-2 border-red-300 hover:border-red-500 focus:outline-none transition-colors flex items-center justify-center bg-white"
-                            >
-                              {loadingItems[chore.id] && <Loader2 className="h-4 w-4 text-red-500 animate-spin" />}
-                            </button>
-                            <div>
-                              <p className="font-bold text-gray-900 text-lg">{chore.title}</p>
-                              <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md mt-1 inline-block">High Priority</span>
+                        <div key={chore.id} className="flex flex-col p-4 rounded-2xl border-2 border-red-100 hover:border-red-300 transition-colors bg-red-50/30 group">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleChoreComplete(chore.id, chore.status); }} 
+                                disabled={loadingItems[chore.id]}
+                                className="w-8 h-8 rounded-full border-2 border-red-300 hover:border-red-500 focus:outline-none transition-colors flex items-center justify-center bg-white flex-shrink-0"
+                              >
+                                {loadingItems[chore.id] && <Loader2 className="h-4 w-4 text-red-500 animate-spin" />}
+                              </button>
+                              <div 
+                                className="flex-1 cursor-pointer flex items-center justify-between"
+                                onClick={() => setExpandedChoreId(expandedChoreId === chore.id ? null : chore.id)}
+                              >
+                                <div>
+                                  <p className="font-bold text-gray-900 text-lg">{chore.title}</p>
+                                  <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md mt-1 inline-block">High Priority</span>
+                                </div>
+                                {expandedChoreId === chore.id ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                              </div>
                             </div>
+                            <span className="font-black text-red-700 bg-red-100 px-4 py-2 rounded-xl ml-2 flex-shrink-0">+{chore.points}</span>
                           </div>
-                          <span className="font-black text-red-700 bg-red-100 px-4 py-2 rounded-xl">+{chore.points}</span>
+                          
+                          <AnimatePresence>
+                            {expandedChoreId === chore.id && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="pt-4 pl-12 pr-4 space-y-2">
+                                  {chore.description && <p className="text-sm text-gray-600 flex items-start gap-2"><FileText className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" /> {chore.description}</p>}
+                                  {!chore.description && <p className="text-sm text-gray-400 italic">No additional details.</p>}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       ))}
                     </div>
@@ -280,22 +305,44 @@ export function MemberDashboard({ profile, chores, goals, claims = [], events = 
                     <h3 className="text-sm font-bold text-indigo-500 uppercase tracking-wider mb-3 flex items-center gap-1.5"><CalendarIcon className="h-4 w-4"/> Upcoming</h3>
                     <div className="space-y-3">
                       {upcoming.map(chore => (
-                        <div key={chore.id} className="flex items-center justify-between p-4 rounded-2xl border border-indigo-100 hover:border-indigo-300 transition-colors bg-indigo-50/30 group">
-                          <div className="flex items-center gap-4">
-                            <button 
-                              onClick={() => handleChoreComplete(chore.id, chore.status)} 
-                              disabled={loadingItems[chore.id]}
-                              className="w-8 h-8 rounded-full border-2 border-indigo-200 hover:border-indigo-500 focus:outline-none transition-colors flex items-center justify-center bg-white"
-                            >
-                              {loadingItems[chore.id] && <Loader2 className="h-4 w-4 text-indigo-500 animate-spin" />}
-                            </button>
-                            <div>
-                              <p className="font-bold text-gray-900 text-lg">{chore.title}</p>
-                              {chore.due_date && <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-md mt-1 inline-block">Due {chore.due_date}</span>}
-                              {chore.recurrence_day && <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-md mt-1 inline-block">Due {chore.recurrence_day}</span>}
+                        <div key={chore.id} className="flex flex-col p-4 rounded-2xl border border-indigo-100 hover:border-indigo-300 transition-colors bg-indigo-50/30 group">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleChoreComplete(chore.id, chore.status); }} 
+                                disabled={loadingItems[chore.id]}
+                                className="w-8 h-8 rounded-full border-2 border-indigo-200 hover:border-indigo-500 focus:outline-none transition-colors flex items-center justify-center bg-white flex-shrink-0"
+                              >
+                                {loadingItems[chore.id] && <Loader2 className="h-4 w-4 text-indigo-500 animate-spin" />}
+                              </button>
+                              <div 
+                                className="flex-1 cursor-pointer flex items-center justify-between"
+                                onClick={() => setExpandedChoreId(expandedChoreId === chore.id ? null : chore.id)}
+                              >
+                                <div>
+                                  <p className="font-bold text-gray-900 text-lg">{chore.title}</p>
+                                  {chore.due_date && <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-md mt-1 inline-block mr-2">Due {chore.due_date}</span>}
+                                  {chore.recurrence_day && <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-md mt-1 inline-block">Due {chore.recurrence_day}</span>}
+                                </div>
+                                {expandedChoreId === chore.id ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                              </div>
                             </div>
+                            <span className="font-black text-indigo-700 bg-indigo-100 px-4 py-2 rounded-xl ml-2 flex-shrink-0">+{chore.points}</span>
                           </div>
-                          <span className="font-black text-indigo-700 bg-indigo-100 px-4 py-2 rounded-xl">+{chore.points}</span>
+
+                          <AnimatePresence>
+                            {expandedChoreId === chore.id && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="pt-4 pl-12 pr-4 space-y-2">
+                                  {chore.description && <p className="text-sm text-gray-600 flex items-start gap-2"><FileText className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" /> {chore.description}</p>}
+                                  {!chore.description && <p className="text-sm text-gray-400 italic">No additional details.</p>}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       ))}
                     </div>
@@ -308,21 +355,43 @@ export function MemberDashboard({ profile, chores, goals, claims = [], events = 
                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5"><CheckSquare className="h-4 w-4"/> Flexible (No Date)</h3>
                     <div className="space-y-3">
                       {flexible.map(chore => (
-                        <div key={chore.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-gray-300 transition-colors bg-gray-50/50 group">
-                          <div className="flex items-center gap-4">
-                            <button 
-                              onClick={() => handleChoreComplete(chore.id, chore.status)} 
-                              disabled={loadingItems[chore.id]}
-                              className="w-8 h-8 rounded-full border-2 border-gray-300 hover:border-gray-500 focus:outline-none transition-colors flex items-center justify-center bg-white"
-                            >
-                              {loadingItems[chore.id] && <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />}
-                            </button>
-                            <div>
-                              <p className="font-bold text-gray-900 text-lg">{chore.title}</p>
-                              <span className="text-xs font-bold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-md mt-1 inline-block">Anytime</span>
+                        <div key={chore.id} className="flex flex-col p-4 rounded-2xl border border-gray-100 hover:border-gray-300 transition-colors bg-gray-50/50 group">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleChoreComplete(chore.id, chore.status); }} 
+                                disabled={loadingItems[chore.id]}
+                                className="w-8 h-8 rounded-full border-2 border-gray-300 hover:border-gray-500 focus:outline-none transition-colors flex items-center justify-center bg-white flex-shrink-0"
+                              >
+                                {loadingItems[chore.id] && <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />}
+                              </button>
+                              <div 
+                                className="flex-1 cursor-pointer flex items-center justify-between"
+                                onClick={() => setExpandedChoreId(expandedChoreId === chore.id ? null : chore.id)}
+                              >
+                                <div>
+                                  <p className="font-bold text-gray-900 text-lg">{chore.title}</p>
+                                  <span className="text-xs font-bold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-md mt-1 inline-block">Anytime</span>
+                                </div>
+                                {expandedChoreId === chore.id ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                              </div>
                             </div>
+                            <span className="font-black text-yellow-600 bg-yellow-100 px-4 py-2 rounded-xl ml-2 flex-shrink-0">+{chore.points}</span>
                           </div>
-                          <span className="font-black text-yellow-600 bg-yellow-100 px-4 py-2 rounded-xl">+{chore.points}</span>
+
+                          <AnimatePresence>
+                            {expandedChoreId === chore.id && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="pt-4 pl-12 pr-4 space-y-2">
+                                  {chore.description && <p className="text-sm text-gray-600 flex items-start gap-2"><FileText className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" /> {chore.description}</p>}
+                                  {!chore.description && <p className="text-sm text-gray-400 italic">No additional details.</p>}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       ))}
                     </div>

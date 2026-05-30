@@ -139,6 +139,32 @@ export async function toggleChoreStatus(id: string, currentStatus: string) {
   revalidatePath("/chores");
 }
 
+export async function completeUnassignedChore(id: string, profileId: string) {
+  const family = await getFamily();
+  const requireApproval = family?.require_approval ?? false;
+  
+  const { data: chore } = await supabase.from("chores").select("*").eq("id", id).single();
+  if (!chore) throw new Error("Chore not found");
+  
+  if (chore.assigned_to) throw new Error("Chore is already assigned");
+  
+  let newStatus = "completed";
+  if (!requireApproval) {
+    newStatus = "approved";
+    await grantPoints(profileId, chore.points);
+  }
+  
+  const { error } = await supabase
+    .from("chores")
+    .update({ status: newStatus, assigned_to: profileId })
+    .eq("id", id);
+    
+  if (error) throw new Error("Failed to complete unassigned chore");
+  
+  revalidatePath("/");
+  revalidatePath("/chores");
+}
+
 export async function approveChore(id: string) {
   const { data: chore } = await supabase.from("chores").select("*").eq("id", id).single();
   if (!chore) throw new Error("Chore not found");
@@ -566,6 +592,24 @@ export async function getEvents() {
   const { data: dbEvents } = await supabase.from("events").select("*").order("start_time", { ascending: true });
   if (dbEvents && dbEvents.length > 0) {
     allEvents = [...dbEvents, ...allEvents];
+  }
+
+  // Inject chores that have a due date
+  const { data: dueChores } = await supabase.from("chores")
+    .select("id, title, due_date, status, assigned_to, profiles:assigned_to(name)")
+    .not("due_date", "is", null);
+
+  if (dueChores && dueChores.length > 0) {
+    const choreEvents = dueChores.map((chore: any) => ({
+      id: `chore-${chore.id}`,
+      title: `📝 ${chore.title} ${chore.profiles ? `(${chore.profiles.name})` : ''}`,
+      start_time: `${chore.due_date}T08:00:00`,
+      end_time: `${chore.due_date}T09:00:00`,
+      is_all_day: true,
+      location: chore.status === 'pending' ? 'Not completed' : 'Completed',
+      calendar_name: 'Chore Tracker'
+    }));
+    allEvents = [...allEvents, ...choreEvents];
   }
 
   return allEvents;
