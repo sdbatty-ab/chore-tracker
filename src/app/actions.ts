@@ -406,6 +406,30 @@ export async function uploadRewardImage(formData: FormData) {
   return publicUrlData.publicUrl;
 }
 
+export async function uploadProfileImage(profileId: string, formData: FormData) {
+  const file = formData.get("file") as File;
+  if (!file) return null;
+  
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const fileName = `profiles/${profileId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+  
+  const { error } = await supabase.storage
+    .from("family-photos")
+    .upload(fileName, buffer, { contentType: file.type });
+    
+  if (error) throw new Error(error.message);
+  
+  const { data: publicUrlData } = supabase.storage.from("family-photos").getPublicUrl(fileName);
+  
+  // Update the profile record
+  await supabase.from("profiles").update({ avatar_url: publicUrlData.publicUrl }).eq("id", profileId);
+  
+  revalidatePath("/");
+  revalidatePath("/member/[id]", "page");
+  
+  return publicUrlData.publicUrl;
+}
+
 export async function addRule(title: string) {
   const family = await getFamily();
   if (family) {
@@ -644,6 +668,53 @@ export async function logGoalProgress(goalId: string, profileId: string) {
   revalidatePath("/rules");
   revalidatePath("/");
   revalidatePath("/member/[id]", "page");
+}
+
+// ---- BUCKET LIST ACTIONS ----
+
+export async function getBucketListItems() {
+  const family = await getFamily();
+  if (!family) return [];
+
+  const { data, error } = await supabase
+    .from("bucket_list_items")
+    .select("*")
+    .eq("family_id", family.id)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching bucket list:", error);
+    return [];
+  }
+  return data;
+}
+
+export async function addBucketListItem(title: string) {
+  const family = await getFamily();
+  if (family) {
+    const { error } = await supabase.from("bucket_list_items").insert({
+      family_id: family.id,
+      title,
+      is_completed: false
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/bucket-list");
+  }
+}
+
+export async function toggleBucketListItem(id: string, isCompleted: boolean) {
+  const { error } = await supabase
+    .from("bucket_list_items")
+    .update({ is_completed: isCompleted })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/bucket-list");
+}
+
+export async function deleteBucketListItem(id: string) {
+  const { error } = await supabase.from("bucket_list_items").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/bucket-list");
 }
 
 

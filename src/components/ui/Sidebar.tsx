@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, CheckSquare, Gift, ShieldAlert, Settings, Calendar, Image as ImageIcon } from "lucide-react";
+import { Home, CheckSquare, Gift, ShieldAlert, Settings, Calendar, Image as ImageIcon, Sun } from "lucide-react";
 import clsx from "clsx";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Chores", href: "/chores", icon: CheckSquare },
+  { name: "Calendar", href: "/calendar", icon: Calendar },
+  { name: "Bucket List", href: "/bucket-list", icon: Sun },
   { name: "Rewards", href: "/rewards", icon: Gift },
   { name: "Rules & Goals", href: "/rules", icon: ShieldAlert },
   { name: "Photos", href: "/photos", icon: ImageIcon },
-  { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

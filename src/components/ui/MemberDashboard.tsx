@@ -6,10 +6,12 @@ import { useState } from "react";
 import Confetti from "react-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarWidget } from "./CalendarWidget";
+import { AvatarUpload } from "./AvatarUpload";
 
 interface Profile {
   id: string;
   name: string;
+  avatar_url?: string | null;
   points_balance: number;
   lifetime_points: number;
 }
@@ -142,10 +144,7 @@ export function MemberDashboard({ profile, chores, goals, claims = [], events = 
 
       {/* Header Profile Section */}
       <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-8">
-        <div className="h-32 w-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex flex-col items-center justify-center text-white shadow-lg border-4 border-white">
-          <User className="h-12 w-12 mb-1" />
-          <span className="font-bold">{profile.name}</span>
-        </div>
+        <AvatarUpload profileId={profile.id} currentAvatarUrl={profile.avatar_url || null} name={profile.name} size="lg" />
         <div className="flex-1 text-center md:text-left">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-2">{profile.name}'s Dashboard</h1>
           <p className="text-gray-500 text-lg">Keep up the great work!</p>

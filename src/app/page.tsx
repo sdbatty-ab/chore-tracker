@@ -2,6 +2,7 @@ import { CalendarWidget } from "@/components/ui/CalendarWidget";
 import { DailyAlerts } from "@/components/ui/DailyAlerts";
 import { WeeklyQuote } from "@/components/ui/WeeklyQuote";
 import { ChoreChecklist } from "@/components/ui/ChoreChecklist";
+import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { CheckSquare, Trophy, User } from "lucide-react";
 import { getChores, getEvents, getProfiles } from "./actions";
 import Link from "next/link";
@@ -32,8 +33,8 @@ export default async function Home() {
         <div className="flex gap-4 overflow-x-auto pb-4">
           {profiles.map(profile => (
             <Link key={profile.id} href={`/member/${profile.id}`} className="flex flex-col items-center gap-2 group min-w-[80px]">
-              <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-md border-2 border-white group-hover:scale-110 transition-transform">
-                {profile.avatar_url ? <img src={profile.avatar_url} className="rounded-full w-full h-full object-cover" /> : profile.name.charAt(0)}
+              <div className="group-hover:scale-110 transition-transform">
+                <AvatarUpload profileId={profile.id} currentAvatarUrl={profile.avatar_url || null} name={profile.name} size="sm" />
               </div>
               <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">{profile.name}</span>
             </Link>
