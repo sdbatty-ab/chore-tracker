@@ -40,8 +40,11 @@ export function ChoreChecklist({ initialChores, profiles }: ChoreChecklistProps)
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleChore = async (chore: Chore) => {
-    // If it's pending and unassigned, prompt for user!
-    if (chore.status === "pending" && !chore.assigned_to) {
+    // Check if the assigned_to ID actually matches a family member's profile ID
+    const isAssignedToValidProfile = profiles.some(p => p.id === chore.assigned_to);
+
+    // If it's pending and not assigned to a valid profile, prompt for user!
+    if (chore.status === "pending" && !isAssignedToValidProfile) {
       setSelectedUnassignedChore(chore);
       return;
     }
