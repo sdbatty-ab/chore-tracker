@@ -199,6 +199,18 @@ async function deductPoints(profileId: string, points: number) {
   }
 }
 
+export async function manualAdjustPoints(profileId: string, amount: number) {
+  if (amount < 0) {
+    await deductPoints(profileId, Math.abs(amount));
+  } else {
+    await grantPoints(profileId, amount);
+  }
+  revalidatePath("/");
+  revalidatePath("/chores");
+  revalidatePath("/member/[id]", "page");
+  revalidatePath("/rewards");
+}
+
 export async function getRewards() {
   const { data, error } = await supabase
     .from("rewards")

@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { Plus, CheckCircle, Clock, Trash2, Check, User, Loader2, Lock, Unlock, Edit2, X } from "lucide-react";
-import { addChore, toggleChoreStatus, approveChore, verifyPin, deleteChore, editChore } from "@/app/actions";
+import { addChore, toggleChoreStatus, approveChore, verifyPin, deleteChore, editChore, manualAdjustPoints } from "@/app/actions";
 import { motion, AnimatePresence } from "framer-motion";
 import Confetti from "react-confetti";
 
 interface Profile {
   id: string;
   name: string;
+  points_balance: number;
 }
 
 interface Chore {
@@ -48,6 +49,10 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
   const [pinError, setPinError] = useState(false);
 
   const [editingChoreId, setEditingChoreId] = useState<string | null>(null);
+  
+  const [showPointsModal, setShowPointsModal] = useState(false);
+  const [adjustAmounts, setAdjustAmounts] = useState<Record<string, number>>({});
+  const [isAdjustingPoints, setIsAdjustingPoints] = useState<Record<string, boolean>>({});
 
   const pendingApprovalChores = initialChores.filter(c => c.status === "completed");
   const pendingChores = initialChores.filter(c => c.status === "pending");
@@ -176,6 +181,23 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
     }
   };
 
+  const handleAdjustPoints = async (profileId: string, isDeduction: boolean) => {
+    const amount = adjustAmounts[profileId] || 0;
+    if (amount <= 0) return;
+    
+    setIsAdjustingPoints(prev => ({ ...prev, [profileId]: true }));
+    try {
+      const finalAmount = isDeduction ? -amount : amount;
+      await manualAdjustPoints(profileId, finalAmount);
+      setAdjustAmounts(prev => ({ ...prev, [profileId]: 0 }));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to adjust points");
+    } finally {
+      setIsAdjustingPoints(prev => ({ ...prev, [profileId]: false }));
+    }
+  };
+
   return (
     <div className="space-y-8 relative">
       {showConfetti && (
@@ -224,8 +246,65 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
         )}
       </AnimatePresence>
 
+      {/* Manage Points Modal */}
+      <AnimatePresence>
+        {showPointsModal && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 shadow-xl max-w-md w-full relative"
+            >
+              <button onClick={() => setShowPointsModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                Manage Points
+              </h3>
+              
+              <div className="space-y-4">
+                {profiles.map(profile => (
+                  <div key={profile.id} className="flex flex-col gap-2 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-gray-900">{profile.name}</span>
+                      <span className="text-sm font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-lg">{profile.points_balance} pts</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input 
+                        type="number"
+                        min="1"
+                        placeholder="Amount"
+                        value={adjustAmounts[profile.id] || ''}
+                        onChange={(e) => setAdjustAmounts(prev => ({ ...prev, [profile.id]: Number(e.target.value) }))}
+                        className="w-24 bg-white border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-teal-500"
+                      />
+                      <button 
+                        onClick={() => handleAdjustPoints(profile.id, true)}
+                        disabled={isAdjustingPoints[profile.id] || !adjustAmounts[profile.id]}
+                        className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold py-2 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                      <button 
+                        onClick={() => handleAdjustPoints(profile.id, false)}
+                        disabled={isAdjustingPoints[profile.id] || !adjustAmounts[profile.id]}
+                        className="flex-1 bg-teal-100 hover:bg-teal-200 text-teal-700 font-bold py-2 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Admin Action Bar */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+      <div className="flex justify-between items-center bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex-wrap gap-4">
         {isUnlocked ? (
           <div className="flex items-center gap-2 text-teal-600 font-bold px-4 py-2 bg-teal-50 rounded-xl">
             <Unlock className="h-5 w-5" /> Parent Mode Unlocked
@@ -236,24 +315,34 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
             <Lock className="h-5 w-5" /> Parent Mode
           </button>
         )}
-        <button 
-          onClick={() => {
-            if (!isUnlocked) {
-              setShowUnlockModal(true);
-              return;
-            }
-            if (!isAddingChore) {
-              setEditingChoreId(null);
-              setNewChoreTitle("");
-              setNewChorePoints(10);
-            }
-            setIsAddingChore(!isAddingChore);
-          }}
-          className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-md"
-        >
-          <Plus className={`h-5 w-5 transition-transform ${isAddingChore ? "rotate-45" : ""}`} />
-          {isAddingChore ? "Cancel" : "Add New Chore"}
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          {isUnlocked && (
+            <button 
+              onClick={() => setShowPointsModal(true)}
+              className="bg-teal-100 hover:bg-teal-200 text-teal-700 px-6 py-3 rounded-2xl font-bold transition-colors flex-1 sm:flex-none"
+            >
+              Manage Points
+            </button>
+          )}
+          <button 
+            onClick={() => {
+              if (!isUnlocked) {
+                setShowUnlockModal(true);
+                return;
+              }
+              if (!isAddingChore) {
+                setEditingChoreId(null);
+                setNewChoreTitle("");
+                setNewChorePoints(10);
+              }
+              setIsAddingChore(!isAddingChore);
+            }}
+            className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-md flex-1 sm:flex-none"
+          >
+            <Plus className={`h-5 w-5 transition-transform ${isAddingChore ? "rotate-45" : ""}`} />
+            {isAddingChore ? "Cancel" : "Add Chore"}
+          </button>
+        </div>
       </div>
 
       {/* Add Chore Form */}
