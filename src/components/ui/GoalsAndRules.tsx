@@ -309,7 +309,7 @@ export function GoalsAndRules({ initialRules, initialGoals, profiles }: GoalsAnd
           <div className="space-y-6 z-10 flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {initialGoals.map((goal, idx) => {
               const isIndividual = !!goal.profile_id && !!goal.profiles;
-              const pointsToUse = isIndividual ? goal.profiles!.points_balance : goal.current_points;
+              const pointsToUse = goal.current_points || 0;
               const progress = Math.min(100, Math.round((pointsToUse / goal.target_points) * 100));
               const isAchieved = progress >= 100;
               
