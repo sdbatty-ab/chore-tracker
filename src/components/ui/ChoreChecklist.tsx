@@ -39,6 +39,9 @@ export function ChoreChecklist({ initialChores, profiles }: ChoreChecklistProps)
   const [selectedUnassignedChore, setSelectedUnassignedChore] = useState<Chore | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Filter State
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
+
   const toggleChore = async (chore: Chore) => {
     // Check if the assigned_to ID actually matches a family member's profile ID
     const isAssignedToValidProfile = profiles.some(p => p.id === chore.assigned_to);
@@ -108,6 +111,20 @@ export function ChoreChecklist({ initialChores, profiles }: ChoreChecklistProps)
     );
   }
 
+  const filteredChores = chores.filter(chore => {
+    // 1. Hide completed chores
+    if (chore.status !== "pending") return false;
+    
+    // 2. Filter by member
+    if (selectedFilter !== "all") {
+      const isUnassigned = !profiles.some(p => p.id === chore.assigned_to);
+      // If it's unassigned, show it to everyone so anyone can claim it.
+      // Otherwise, only show if it belongs to the selected filter.
+      if (!isUnassigned && chore.assigned_to !== selectedFilter) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm relative">
       {showConfetti && (
@@ -152,23 +169,67 @@ export function ChoreChecklist({ initialChores, profiles }: ChoreChecklistProps)
         )}
       </AnimatePresence>
       
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Today's Chores</h2>
-      
-      <div className="space-y-3">
-        {chores.map((chore) => {
-          const isCompleted = chore.status === "completed" || chore.status === "approved";
-          return (
-            <motion.div 
-              key={chore.id}
-              layout
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex flex-col p-4 rounded-xl border transition-all overflow-hidden ${
-                isCompleted 
-                  ? "bg-gray-50 border-gray-100 opacity-60" 
-                  : "bg-white border-gray-200 hover:border-indigo-300 shadow-sm"
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h2 className="text-xl font-bold text-gray-900">Today's Chores</h2>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedFilter("all")}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${
+              selectedFilter === "all" 
+                ? "bg-indigo-600 text-white" 
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            All
+          </button>
+          {profiles.map(p => (
+            <button
+              key={p.id}
+              onClick={() => setSelectedFilter(p.id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors flex items-center gap-2 ${
+                selectedFilter === p.id 
+                  ? "bg-indigo-600 text-white" 
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
+              {p.avatar_url ? (
+                <img src={p.avatar_url} className="w-5 h-5 rounded-full object-cover" />
+              ) : (
+                <User className="h-3 w-3" />
+              )}
+              {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {filteredChores.length === 0 ? (
+        <div className="py-12 text-center">
+          <div className="inline-block p-3 bg-green-50 rounded-full text-green-500 mb-3">
+            <Check className="h-8 w-8" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-1">All Clear!</h3>
+          <p className="text-gray-500 text-sm">No chores pending here.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <AnimatePresence mode="popLayout">
+            {filteredChores.map((chore) => {
+              const isCompleted = chore.status === "completed" || chore.status === "approved";
+              return (
+              <motion.div 
+                key={chore.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0, overflow: "hidden" }}
+                transition={{ duration: 0.2 }}
+                className={`flex flex-col p-4 rounded-xl border transition-all overflow-hidden ${
+                  isCompleted 
+                    ? "bg-gray-50 border-gray-100 opacity-60" 
+                    : "bg-white border-gray-200 hover:border-indigo-300 shadow-sm"
+                }`}
+              >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 flex-1">
                   <button 
@@ -234,10 +295,11 @@ export function ChoreChecklist({ initialChores, profiles }: ChoreChecklistProps)
                     </div>
                   </motion.div>
                 )}
-              </AnimatePresence>
-            </motion.div>
-          );
-        })}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );
