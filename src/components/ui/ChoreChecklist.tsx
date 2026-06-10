@@ -301,6 +301,7 @@ export function ChoreChecklist({ initialChores, profiles }: ChoreChecklistProps)
           })}
         </AnimatePresence>
       </div>
+      )}
     </div>
   );
 }
