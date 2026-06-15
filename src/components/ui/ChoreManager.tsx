@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, CheckCircle, Clock, Trash2, Check, User, Loader2, Lock, Unlock, Edit2, X } from "lucide-react";
-import { addChore, toggleChoreStatus, approveChore, verifyPin, deleteChore, editChore, manualAdjustPoints } from "@/app/actions";
+import { addChore, toggleChoreStatus, approveChore, verifyPin, deleteChore, editChore, manualAdjustPoints, completeUnassignedChore } from "@/app/actions";
 import { motion, AnimatePresence } from "framer-motion";
 import Confetti from "react-confetti";
 
@@ -10,6 +10,7 @@ interface Profile {
   id: string;
   name: string;
   points_balance: number;
+  avatar_url?: string;
 }
 
 interface Chore {
@@ -41,6 +42,10 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
   const [newChoreRecurrenceDay, setNewChoreRecurrenceDay] = useState("Monday");
   const [isSaving, setIsSaving] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  
+  // Unassigned Chore Modal State
+  const [selectedUnassignedChore, setSelectedUnassignedChore] = useState<Chore | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
@@ -157,16 +162,43 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
     }
   };
 
-  const handleToggle = async (id: string, status: string) => {
+  const handleToggle = async (chore: Chore) => {
+    // Check if the assigned_to ID actually matches a family member's profile ID
+    const isAssignedToValidProfile = profiles.some(p => p.id === chore.assigned_to);
+
+    // If it's pending and not assigned to a valid profile, prompt for user!
+    if (chore.status === "pending" && !isAssignedToValidProfile) {
+      setSelectedUnassignedChore(chore);
+      return;
+    }
+
     try {
-      if (status === "pending" && !requireApproval) {
+      if (chore.status === "pending" && !requireApproval) {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 3000);
       }
-      await toggleChoreStatus(id, status);
+      await toggleChoreStatus(chore.id, chore.status);
     } catch (err) {
       console.error(err);
       alert("Failed to update chore");
+    }
+  };
+
+  const handleClaimUnassignedChore = async (profileId: string) => {
+    if (!selectedUnassignedChore) return;
+    setIsSubmitting(true);
+    
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3000);
+    
+    try {
+      await completeUnassignedChore(selectedUnassignedChore.id, profileId);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to complete chore");
+    } finally {
+      setIsSubmitting(false);
+      setSelectedUnassignedChore(null);
     }
   };
 
@@ -296,6 +328,45 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
                       </button>
                     </div>
                   </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Unassigned Chore Modal */}
+      <AnimatePresence>
+        {selectedUnassignedChore && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedUnassignedChore(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full relative"
+            >
+              <button onClick={() => setSelectedUnassignedChore(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Who completed this?</h3>
+              <p className="text-gray-500 text-sm mb-6 font-medium">"{selectedUnassignedChore.title}" was an open chore. Select who did it to award the points!</p>
+              
+              <div className="space-y-3">
+                {profiles.map(profile => (
+                  <button 
+                    key={profile.id}
+                    disabled={isSubmitting}
+                    onClick={() => handleClaimUnassignedChore(profile.id)}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-teal-50 hover:border-teal-200 transition-colors"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">
+                      {profile.avatar_url ? <img src={profile.avatar_url} className="rounded-full w-full h-full object-cover" /> : profile.name.charAt(0)}
+                    </div>
+                    <span className="font-bold text-gray-900">{profile.name}</span>
+                  </button>
                 ))}
               </div>
             </motion.div>
@@ -471,7 +542,7 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => handleToggle(chore.id, chore.status)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors" title="Reject / Undo">
+                      <button onClick={() => handleToggle(chore)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors" title="Reject / Undo">
                         <Trash2 className="h-5 w-5" />
                       </button>
                       <button onClick={() => handleApprove(chore.id)} className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold text-sm transition-colors flex items-center gap-1">
@@ -498,7 +569,7 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
               {pendingChores.map(chore => (
                 <div key={chore.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-indigo-200 transition-colors bg-gray-50/50">
                   <div className="flex items-center gap-4">
-                    <button onClick={() => handleToggle(chore.id, chore.status)} className="w-6 h-6 rounded-full border-2 border-gray-300 hover:border-indigo-500 focus:outline-none transition-colors"></button>
+                    <button onClick={() => handleToggle(chore)} className="w-6 h-6 rounded-full border-2 border-gray-300 hover:border-indigo-500 focus:outline-none transition-colors"></button>
                     <div>
                       <p className="font-medium text-gray-900 flex items-center gap-2">
                         {chore.title}
@@ -547,7 +618,7 @@ export function ChoreManager({ initialChores, profiles, requireApproval }: Chore
               {completedChores.map(chore => (
                 <div key={chore.id} className="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-gray-50">
                   <div className="flex items-center gap-4">
-                    <button onClick={() => handleToggle(chore.id, chore.status)} className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition-colors">
+                    <button onClick={() => handleToggle(chore)} className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition-colors">
                       <Check className="h-4 w-4" />
                     </button>
                     <div>
